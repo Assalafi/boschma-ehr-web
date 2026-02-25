@@ -8,7 +8,7 @@
             <span class="d-inline-block">H</span>
             <span class="d-inline-block">M</span>
             <span class="d-inline-block">A</span>
-            <span class="d-inline-block">-</span>
+            <span class="d-inline-block"> </span>
             <span class="d-inline-block">E</span>
             <span class="d-inline-block">H</span>
             <span class="d-inline-block">R</span>
