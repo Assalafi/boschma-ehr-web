@@ -81,10 +81,10 @@
             <a href="{{ route('doctor.queue') }}" class="text-white"><span class="material-symbols-outlined">arrow_back</span></a>
             <div>
                 <h5 class="mb-0 text-white fw-bold">Patient Consultation</h5>
-                <div class="patient-meta">{{ $beneficiary?->fullname ?? 'N/A' }} | {{ $age ? $age.' yrs' : '' }}{{ $beneficiary?->gender ? ', '.$beneficiary->gender : '' }}</div>
+                <div class="patient-meta">{{ $encounter->patient->enrollee_name ?? 'N/A' }} | {{ $age ? $age.' yrs' : '' }}{{ $encounter->patient->enrollee_gender ? ', '.$encounter->patient->enrollee_gender : '' }}</div>
             </div>
         </div>
-        <span class="badge bg-white text-dark fw-bold px-3 py-2">{{ $beneficiary?->boschma_no ?? '' }}</span>
+        <span class="badge bg-white text-dark fw-bold px-3 py-2">{{ $encounter->patient->enrollee_number ?? '' }}</span>
     </div>
 
     <!-- Step Indicator -->
