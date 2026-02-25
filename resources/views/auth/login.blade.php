@@ -1,11 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Primary Meta Tags -->
+    <title>Login - BOSCHMA EHR | Borno State Government</title>
+    <meta name="title" content="Login - BOSCHMA Electronic Health Record System">
+    <meta name="description" content="Secure login to BOSCHMA EHR - Borno State Government's Electronic Health Record System. Access patient records, manage healthcare services, and more.">
+    <meta name="keywords" content="BOSCHMA EHR login, healthcare login, patient records, Borno State, medical system, secure login">
+    <meta name="author" content="Borno State Government">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:title" content="Login - BOSCHMA Electronic Health Record System">
+    <meta property="og:description" content="Secure login to BOSCHMA EHR - Borno State Government's Electronic Health Record System">
+    <meta property="og:image" content="{{ url('/assets/images/og-image.jpg') }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="BOSCHMA EHR Login">
+    <meta property="og:site_name" content="BOSCHMA EHR">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="{{ url()->current() }}">
+    <meta property="twitter:title" content="Login - BOSCHMA Electronic Health Record System">
+    <meta property="twitter:description" content="Secure login to BOSCHMA EHR - Borno State Government's Electronic Health Record System">
+    <meta property="twitter:image" content="{{ url('/assets/images/og-image.jpg') }}">
+    <meta property="twitter:image:alt" content="BOSCHMA EHR Login">
+    
+    <!-- Additional Meta Tags -->
     <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Login - BOSCHMA EMS</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#016634">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="{{ url()->current() }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url('/assets/images/favicon.ico') }}">
+    
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+    
+    <!-- Styles -->
     @include('partials.styles')
 </head>
 <body class="boxed-size bg-gray-200">
