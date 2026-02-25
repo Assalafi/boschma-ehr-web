@@ -194,16 +194,57 @@ class ReceptionistController extends Controller
     /**
      * Show beneficiary details for check-in
      */
-    public function showBeneficiary(Beneficiary $beneficiary)
+    public function showBeneficiary(string $type, int $id)
     {
         $facilityId = $this->getFacilityId();
         
-        // Ensure beneficiary belongs to this facility
-        if ($beneficiary->facility_id !== $facilityId) {
-            abort(403, 'This beneficiary does not belong to your facility.');
+        // Resolve the correct model based on type
+        switch ($type) {
+            case 'spouse':
+                $enrollee = Spouse::with(['beneficiary.program', 'patient'])->findOrFail($id);
+                if ($enrollee->facility_id !== $facilityId) abort(403);
+                $beneficiary = (object)[
+                    'id' => $enrollee->id, 'type' => 'spouse',
+                    'fullname' => $enrollee->name, 'boschma_no' => $enrollee->boschma_no,
+                    'gender' => $enrollee->gender, 'date_of_birth' => $enrollee->dob,
+                    'phone_no' => $enrollee->phone, 'nin' => $enrollee->nin,
+                    'photo' => $enrollee->photo,
+                    'program' => $enrollee->beneficiary->program ?? null,
+                    'program_id' => $enrollee->beneficiary->program_id ?? null,
+                    'status' => 'Active', 'patient' => $enrollee->patient,
+                    'spouse' => null, 'children' => collect(),
+                ];
+                break;
+            case 'child':
+                $enrollee = Child::with(['beneficiary.program', 'patient'])->findOrFail($id);
+                if ($enrollee->facility_id !== $facilityId) abort(403);
+                $beneficiary = (object)[
+                    'id' => $enrollee->id, 'type' => 'child',
+                    'fullname' => $enrollee->name, 'boschma_no' => $enrollee->boschma_no,
+                    'gender' => $enrollee->gender, 'date_of_birth' => $enrollee->dob,
+                    'phone_no' => null, 'nin' => $enrollee->nin,
+                    'photo' => $enrollee->photo,
+                    'program' => $enrollee->beneficiary->program ?? null,
+                    'program_id' => $enrollee->beneficiary->program_id ?? null,
+                    'status' => 'Active', 'patient' => $enrollee->patient,
+                    'spouse' => null, 'children' => collect(),
+                ];
+                break;
+            default: // beneficiary
+                $enrollee = Beneficiary::with(['patient', 'program', 'spouse', 'children'])->findOrFail($id);
+                if ($enrollee->facility_id !== $facilityId) abort(403);
+                $beneficiary = (object)[
+                    'id' => $enrollee->id, 'type' => 'beneficiary',
+                    'fullname' => $enrollee->fullname, 'boschma_no' => $enrollee->boschma_no,
+                    'gender' => $enrollee->gender, 'date_of_birth' => $enrollee->date_of_birth,
+                    'phone_no' => $enrollee->phone_no, 'nin' => $enrollee->nin,
+                    'photo' => $enrollee->photo,
+                    'program' => $enrollee->program,
+                    'program_id' => $enrollee->program_id,
+                    'status' => $enrollee->status, 'patient' => $enrollee->patient,
+                    'spouse' => $enrollee->spouse, 'children' => $enrollee->children ?? collect(),
+                ];
         }
-        
-        $beneficiary->load(['patient', 'program', 'spouse', 'children']);
         
         // Get recent encounters and check for ongoing encounter
         $recentEncounters = [];
@@ -232,13 +273,35 @@ class ReceptionistController extends Controller
     /**
      * Check-in a beneficiary and create an encounter
      */
-    public function checkIn(Request $request, Beneficiary $beneficiary)
+    public function checkIn(Request $request, string $type, int $id)
     {
         $facilityId = $this->getFacilityId();
         
-        // Ensure beneficiary belongs to this facility
-        if ($beneficiary->facility_id !== $facilityId) {
-            abort(403, 'This beneficiary does not belong to your facility.');
+        // Resolve the correct model based on type
+        switch ($type) {
+            case 'spouse':
+                $enrollee = Spouse::with(['beneficiary.program', 'patient'])->findOrFail($id);
+                if ($enrollee->facility_id !== $facilityId) abort(403);
+                $fullname = $enrollee->name;
+                $boschmaNo = $enrollee->boschma_no;
+                $programId = $enrollee->beneficiary->program_id ?? null;
+                $enrolleeType = 'spouse';
+                break;
+            case 'child':
+                $enrollee = Child::with(['beneficiary.program', 'patient'])->findOrFail($id);
+                if ($enrollee->facility_id !== $facilityId) abort(403);
+                $fullname = $enrollee->name;
+                $boschmaNo = $enrollee->boschma_no;
+                $programId = $enrollee->beneficiary->program_id ?? null;
+                $enrolleeType = 'child';
+                break;
+            default: // beneficiary
+                $enrollee = Beneficiary::with(['patient', 'program'])->findOrFail($id);
+                if ($enrollee->facility_id !== $facilityId) abort(403);
+                $fullname = $enrollee->fullname;
+                $boschmaNo = $enrollee->boschma_no;
+                $programId = $enrollee->program_id;
+                $enrolleeType = 'beneficiary';
         }
         
         $request->validate([
@@ -249,8 +312,8 @@ class ReceptionistController extends Controller
         
         DB::beginTransaction();
         try {
-            // Get or create patient record for this beneficiary
-            $patient = $beneficiary->patient;
+            // Get or create patient record for this enrollee
+            $patient = $enrollee->patient;
             $isNewPatient = false;
             
             if (!$patient) {
@@ -263,19 +326,23 @@ class ReceptionistController extends Controller
                 
                 $patient = Patient::create([
                     'file_number' => $fileNumber,
-                    'enrollee_number' => $beneficiary->boschma_no,
-                    'enrollee_type' => 'beneficiary',
+                    'enrollee_number' => $boschmaNo,
+                    'enrollee_type' => $enrolleeType,
                 ]);
-                $beneficiary->update(['patient_id' => $patient->id]);
+                
+                // Update enrollee with patient_id
+                if ($type === 'beneficiary') {
+                    $enrollee->update(['patient_id' => $patient->id]);
+                }
             }
             
             // Create encounter
             $encounter = Encounter::create([
                 'patient_id' => $patient->id,
                 'facility_id' => $facilityId,
-                'program_id' => $beneficiary->program_id, // Use beneficiary's program
+                'program_id' => $programId,
                 'nature_of_visit' => $request->nature_of_visit,
-                'mode_of_entry' => 'Walk-in', // Default mode of entry
+                'mode_of_entry' => 'Walk-in',
                 'reason_for_visit' => $request->chief_complaint,
                 'status' => Encounter::STATUS_REGISTERED,
                 'officer_in_charge_id' => Auth::id(),
@@ -293,7 +360,7 @@ class ReceptionistController extends Controller
             
             DB::commit();
             
-            $successMessage = $beneficiary->fullname . ' checked in successfully.';
+            $successMessage = $fullname . ' checked in successfully.';
             if ($isNewPatient) {
                 $successMessage .= ' New patient file ' . $patient->file_number . ' created.';
             }

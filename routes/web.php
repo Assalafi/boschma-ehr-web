@@ -51,8 +51,8 @@ Route::middleware(['auth'])->group(function () {
         
         // Beneficiary Search & Check-in
         Route::get('/beneficiaries/search', [ReceptionistController::class, 'searchBeneficiary'])->name('beneficiaries.search');
-        Route::get('/beneficiaries/{beneficiary}', [ReceptionistController::class, 'showBeneficiary'])->name('beneficiaries.show');
-        Route::post('/beneficiaries/{beneficiary}/checkin', [ReceptionistController::class, 'checkIn'])->name('beneficiaries.checkin');
+        Route::get('/beneficiaries/{type}/{id}', [ReceptionistController::class, 'showBeneficiary'])->name('beneficiaries.show');
+        Route::post('/beneficiaries/{type}/{id}/checkin', [ReceptionistController::class, 'checkIn'])->name('beneficiaries.checkin');
         
         // Encounters
         Route::get('/encounters', [ReceptionistController::class, 'encounters'])->name('encounters.index');

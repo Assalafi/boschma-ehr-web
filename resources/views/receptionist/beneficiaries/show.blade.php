@@ -33,7 +33,7 @@
                 <div class="text-center">
                     <div class="wh-80 bg-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 overflow-hidden">
                         @if($beneficiary->photo)
-                            <img src="{{ $beneficiary->photo }}" class="rounded-circle wh-80 object-fit-cover" alt="">
+                            <img src="{{ 'http://eboschma.bornostate.gov.ng/storage/' . ltrim($beneficiary->photo, '/') }}" class="rounded-circle wh-80 object-fit-cover" alt="">
                         @else
                             <span class="material-symbols-outlined text-primary" style="font-size: 2.5rem;">person</span>
                         @endif
@@ -230,7 +230,7 @@
                 </div>
                 @endif
                 
-                <form action="{{ route('receptionist.beneficiaries.checkin', $beneficiary) }}" method="POST">
+                <form action="{{ route('receptionist.beneficiaries.checkin', [$beneficiary->type, $beneficiary->id]) }}" method="POST">
                     @csrf
                     
                     <div class="row g-4">
