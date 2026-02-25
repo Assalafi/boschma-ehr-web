@@ -62,39 +62,42 @@ class Patient extends Model
     public function getEnrolleeNameAttribute()
     {
         $e = $this->enrollee;
+        if (!$e) return 'Unknown';
         return $e->fullname ?? $e->name ?? 'Unknown';
     }
 
     public function getEnrolleeGenderAttribute()
     {
-        return $this->enrollee->gender ?? '';
+        return $this->enrollee?->gender ?? '';
     }
 
     public function getEnrolleeDobAttribute()
     {
         $e = $this->enrollee;
+        if (!$e) return null;
         return $e->date_of_birth ?? $e->dob ?? null;
     }
 
     public function getEnrolleePhoneAttribute()
     {
         $e = $this->enrollee;
+        if (!$e) return '';
         return $e->phone_no ?? $e->phone ?? '';
     }
 
     public function getEnrolleeEmailAttribute()
     {
-        return $this->enrollee->email ?? '';
+        return $this->enrollee?->email ?? '';
     }
 
     public function getEnrolleeNinAttribute()
     {
-        return $this->enrollee->nin ?? '';
+        return $this->enrollee?->nin ?? '';
     }
 
     public function getEnrolleePhotoAttribute()
     {
-        return $this->enrollee->photo ?? null;
+        return $this->enrollee?->photo ?? null;
     }
 
     public function getEnrolleeDetailsAttribute()
