@@ -74,7 +74,7 @@ class DoctorController extends Controller
             ->count();
 
         // Patient queue - sorted by priority (Red first, then Yellow, then Green)
-        $patientQueue = Encounter::with(['patient.beneficiary', 'vitalSigns', 'program'])
+        $patientQueue = Encounter::with(['patient', 'vitalSigns', 'program'])
             ->where('facility_id', $facilityId)
             ->where('status', Encounter::STATUS_TRIAGED)
             ->whereDoesntHave('consultations')
@@ -91,7 +91,7 @@ class DoctorController extends Controller
             ->take(15);
             
         // Recent consultations
-        $recentConsultations = ClinicalConsultation::with(['encounter.patient.beneficiary', 'doctor', 'diagnoses'])
+        $recentConsultations = ClinicalConsultation::with(['encounter.patient', 'doctor', 'diagnoses'])
             ->whereHas('encounter', function($q) use ($facilityId) {
                 $q->where('facility_id', $facilityId);
             })
@@ -200,7 +200,7 @@ class DoctorController extends Controller
      */
     public function startConsultation(Request $request, Encounter $encounter)
     {
-        $encounter->load(['patient.beneficiary', 'vitalSigns.takenBy', 'program', 'consultations.diagnoses', 'consultations.procedures', 'consultations.prescriptions.items.drug']);
+        $encounter->load(['patient', 'vitalSigns.takenBy', 'program', 'consultations.diagnoses', 'consultations.procedures', 'consultations.prescriptions.items.drug']);
         
         // Allow editing if consultation is still in-progress; only redirect when completed
         $existingConsultation = $encounter->consultations->first();
@@ -1035,7 +1035,7 @@ class DoctorController extends Controller
     public function showConsultation(ClinicalConsultation $consultation)
     {
         $consultation->load([
-            'encounter.patient.beneficiary',
+            'encounter.patient',
             'encounter.vitalSigns',
             'encounter.program',
             'doctor',
@@ -1219,7 +1219,7 @@ class DoctorController extends Controller
         $user = Auth::user();
         $facilityId = $user->facility_id;
 
-        $query = ClinicalConsultation::with(['encounter.patient.beneficiary', 'doctor', 'diagnoses.icdCode'])
+        $query = ClinicalConsultation::with(['encounter.patient', 'doctor', 'diagnoses.icdCode'])
             ->whereHas('encounter', function($q) use ($facilityId) {
                 $q->where('facility_id', $facilityId);
             });
@@ -1242,7 +1242,7 @@ class DoctorController extends Controller
         // Search patient
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('encounter.patient.beneficiary', function($q) use ($search) {
+            $query->whereHas('encounter.patient', function($q) use ($search) {
                 $q->where('fullname', 'like', "%{$search}%")
                   ->orWhere('boschma_no', 'like', "%{$search}%");
             });
@@ -1922,7 +1922,7 @@ class DoctorController extends Controller
     {
         // Load order with all necessary relationships
         $order->load([
-            'encounter.patient.beneficiary',
+            'encounter.patient',
             'encounter.vitalSigns',
             'encounter.consultations.doctor',
             'encounter.consultations.diagnoses',
