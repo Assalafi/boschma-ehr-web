@@ -17,35 +17,59 @@
       @php
         $vitalSign = $encounter->vitalSigns->first();
         $priority = $vitalSign?->overall_priority ?? 'Green';
-        $priorityLabel = ['Red'=>'Critical','Yellow'=>'Urgent','Green'=>'Normal'];
-        $pc = ['Red'=>'red','Yellow'=>'amber','Green'=>'green'];
-        $bg = ['Red'=>'#fee2e2','Yellow'=>'#fef3c7','Green'=>'#e6f5ed'];
-        $fg = ['Red'=>'#dc2626','Yellow'=>'#d97706','Green'=>'#016634'];
+        $priorityLabel = [
+            'Red'=>'Critical','Yellow'=>'Urgent','Green'=>'Normal',
+            'High'=>'High','high'=>'High',
+            'Critical'=>'Critical','critical'=>'Critical',
+            'Urgent'=>'Urgent','urgent'=>'Urgent',
+            'Normal'=>'Normal','normal'=>'Normal'
+        ];
+        $pc = [
+            'Red'=>'red','Yellow'=>'amber','Green'=>'green',
+            'High'=>'red','high'=>'red',
+            'Critical'=>'red','critical'=>'red',
+            'Urgent'=>'amber','urgent'=>'amber',
+            'Normal'=>'green','normal'=>'green'
+        ];
+        $bg = [
+            'Red'=>'#fee2e2','Yellow'=>'#fef3c7','Green'=>'#e6f5ed',
+            'High'=>'#fee2e2','high'=>'#fee2e2',
+            'Critical'=>'#fee2e2','critical'=>'#fee2e2',
+            'Urgent'=>'#fef3c7','urgent'=>'#fef3c7',
+            'Normal'=>'#e6f5ed','normal'=>'#e6f5ed'
+        ];
+        $fg = [
+            'Red'=>'#dc2626','Yellow'=>'#d97706','Green'=>'#016634',
+            'High'=>'#dc2626','high'=>'#dc2626',
+            'Critical'=>'#dc2626','critical'=>'#dc2626',
+            'Urgent'=>'#d97706','urgent'=>'#d97706',
+            'Normal'=>'#016634','normal'=>'#016634'
+        ];
         $waitMinutes = $encounter->created_at->diffInMinutes();
       @endphp
-      <tr style="border-bottom:1px solid #f1f5f9;transition:background .1s{{ $priority == 'Red' ? ';background:#fff5f5' : '' }}" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='{{ $priority == 'Red' ? '#fff5f5' : '' }}'">
+      <tr style="border-bottom:1px solid #f1f5f9;transition:background .1s{{ in_array($priority, ['Red', 'High', 'high', 'Critical', 'critical']) ? ';background:#fff5f5' : '' }}" onmouseover="this.style.background='#f8fafb'" onmouseout="this.style.background='{{ in_array($priority, ['Red', 'High', 'high', 'Critical', 'critical']) ? '#fff5f5' : '' }}'">
         <td style="padding:12px 14px;font-size:13px;vertical-align:middle">
           <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#f1f5f9;color:#475569">{{ $index + 1 }}</span>
         </td>
         <td style="padding:12px 14px;vertical-align:middle">
           <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:{{ $bg[$priority] }};color:{{ $fg[$priority] }}">
-            @if($priority == 'Red')<span class="material-symbols-outlined" style="font-size:12px">warning</span>@endif
+            @if(in_array($priority, ['Red', 'High', 'high', 'Critical', 'critical']))<span class="material-symbols-outlined" style="font-size:12px">warning</span>@endif
             {{ $priorityLabel[$priority] ?? $priority }}
           </span>
         </td>
         <td style="padding:12px 14px;vertical-align:middle">
           <div style="display:flex;align-items:center;gap:12px">
             <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:{{ $bg[$priority] }}">
-              @if($encounter->patient->beneficiary->photo ?? false)
-                <img src="{{ asset('storage/' . $encounter->patient->beneficiary->photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
+              @if($encounter->patient->enrollee_photo ?? false)
+                <img src="{{ asset('storage/' . $encounter->patient->enrollee_photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
               @else
                 <span class="material-symbols-outlined" style="font-size:18px;color:{{ $fg[$priority] }}">person</span>
               @endif
             </div>
             <div>
-              <div style="font-weight:600;color:#1e293b;font-size:13px">{{ $encounter->patient->beneficiary->fullname ?? 'N/A' }}</div>
-              <div style="font-size:11px;color:#94a3b8">{{ $encounter->patient->beneficiary->boschma_no ?? '' }}</div>
-              <div style="font-size:10px;color:#94a3b8">{{ $encounter->patient->beneficiary->gender ?? '' }} | {{ $encounter->patient->beneficiary->date_of_birth ? \Carbon\Carbon::parse($encounter->patient->beneficiary->date_of_birth)->age . ' yrs' : '' }}</div>
+              <div style="font-weight:600;color:#1e293b;font-size:13px">{{ $encounter->patient->enrollee_name ?? 'N/A' }}</div>
+              <div style="font-size:11px;color:#94a3b8">{{ $encounter->patient->enrollee_number ?? '' }}</div>
+              <div style="font-size:10px;color:#94a3b8">{{ $encounter->patient->enrollee_gender ?? '' }} | {{ $encounter->patient->enrollee_dob ? \Carbon\Carbon::parse($encounter->patient->enrollee_dob)->age . ' yrs' : '' }}</div>
             </div>
           </div>
         </td>

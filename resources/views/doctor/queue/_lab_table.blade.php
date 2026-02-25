@@ -33,15 +33,15 @@
         <td style="padding:12px 14px;vertical-align:middle">
           <div style="display:flex;align-items:center;gap:12px">
             <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:#fef3c7">
-              @if($encounter->patient->beneficiary->photo ?? false)
-                <img src="{{ asset('storage/' . $encounter->patient->beneficiary->photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
+              @if($encounter->patient->enrollee_photo ?? false)
+                <img src="{{ asset('storage/' . $encounter->patient->enrollee_photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
               @else
                 <span class="material-symbols-outlined" style="font-size:18px;color:#d97706">person</span>
               @endif
             </div>
             <div>
-              <div style="font-weight:600;color:#1e293b;font-size:13px">{{ $encounter->patient->beneficiary->fullname ?? 'N/A' }}</div>
-              <div style="font-size:11px;color:#94a3b8">{{ $encounter->patient->beneficiary->boschma_no ?? '' }}</div>
+              <div style="font-weight:600;color:#1e293b;font-size:13px">{{ $encounter->patient->enrollee_name ?? 'N/A' }}</div>
+              <div style="font-size:11px;color:#94a3b8">{{ $encounter->patient->enrollee_number ?? '' }}</div>
             </div>
           </div>
         </td>

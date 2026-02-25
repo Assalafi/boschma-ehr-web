@@ -335,7 +335,15 @@
       </tr></thead>
       <tbody>
         @foreach($allVitals as $v)
-        @php $pc=['Red'=>'danger','Yellow'=>'warning','Green'=>'success']; @endphp
+        @php 
+        $pc=[
+            'Red'=>'danger','Yellow'=>'warning','Green'=>'success',
+            'High'=>'danger','high'=>'danger',
+            'Critical'=>'danger','critical'=>'danger',
+            'Urgent'=>'warning','urgent'=>'warning',
+            'Normal'=>'success','normal'=>'success'
+        ]; 
+        @endphp
         <tr>
           <td class="text-nowrap"><strong>{{ $v->created_at->format('d M Y') }}</strong><div class="text-muted" style="font-size:11px">{{ $v->created_at->format('H:i') }}</div></td>
           <td>{{ $v->temperature ?? '—' }}</td>

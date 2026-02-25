@@ -44,8 +44,14 @@
 @php
     $vitalSign = $consultation->encounter->vitalSigns->first();
     $priority = $vitalSign?->overall_priority ?? 'Green';
-    $pc = ['Red'=>'red','Yellow'=>'amber','Green'=>'green'];
-    $beneficiary = $consultation->encounter->patient->beneficiary;
+    $pc = [
+        'Red'=>'red','Yellow'=>'amber','Green'=>'green',
+        'High'=>'red','high'=>'red',
+        'Critical'=>'red','critical'=>'critical',
+        'Urgent'=>'amber','urgent'=>'urgent',
+        'Normal'=>'green','normal'=>'normal'
+    ];
+    $beneficiary = $consultation->encounter->patient->enrollee;
 @endphp
 
 <div class="doc-page">
@@ -71,14 +77,14 @@
       <div class="doc-card">
         <div style="background:{{ $priority == 'Red' ? '#dc2626' : ($priority == 'Yellow' ? '#d97706' : 'var(--doc-primary)') }};color:#fff;padding:20px;text-align:center">
           <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden">
-            @if($beneficiary->photo ?? false)
-              <img src="{{ asset('storage/' . $beneficiary->photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
+            @if($consultation->encounter->patient->enrollee_photo ?? false)
+              <img src="{{ asset('storage/' . $consultation->encounter->patient->enrollee_photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
             @else
               <span class="material-symbols-outlined" style="font-size:28px">person</span>
             @endif
           </div>
-          <h5 style="margin:0 0 4px;color:#fff;font-weight:700;font-size:16px">{{ $beneficiary->fullname ?? 'N/A' }}</h5>
-          <span style="display:inline-block;padding:3px 12px;border-radius:20px;background:rgba(255,255,255,.2);font-size:12px">{{ $beneficiary->boschma_no ?? '' }}</span>
+          <h5 style="margin:0 0 4px;color:#fff;font-weight:700;font-size:16px">{{ $consultation->encounter->patient->enrollee_name ?? 'N/A' }}</h5>
+          <span style="display:inline-block;padding:3px 12px;border-radius:20px;background:rgba(255,255,255,.2);font-size:12px">{{ $consultation->encounter->patient->enrollee_number ?? '' }}</span>
         </div>
         <div style="padding:16px 20px">
           <div class="info-row"><span class="info-label">Doctor</span><span class="info-value">Dr. {{ $consultation->doctor->name ?? 'N/A' }}</span></div>

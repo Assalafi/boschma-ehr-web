@@ -171,22 +171,28 @@
             @php
               $vitalSign = $encounter->vitalSigns->first();
               $priority = $vitalSign?->overall_priority ?? 'Green';
-              $pc = ['Red'=>'red','Yellow'=>'amber','Green'=>'green'];
+              $pc = [
+                'Red'=>'red','Yellow'=>'amber','Green'=>'green',
+                'High'=>'red','high'=>'red',
+                'Critical'=>'red','critical'=>'critical',
+                'Urgent'=>'amber','urgent'=>'urgent',
+                'Normal'=>'green','normal'=>'normal'
+            ];
             @endphp
             <tr>
               <td><span class="doc-badge doc-badge-{{ $pc[$priority] ?? 'green' }}">{{ $priority }}</span></td>
               <td>
                 <div class="patient-cell">
                   <div class="patient-avatar" style="background:{{ $priority == 'Red' ? '#fee2e2' : ($priority == 'Yellow' ? '#fef3c7' : 'var(--doc-primary-light)') }}">
-                    @if($encounter->patient->beneficiary->photo ?? false)
-                      <img src="{{ asset('storage/' . $encounter->patient->beneficiary->photo) }}" alt="">
+                    @if($encounter->patient->enrollee_photo ?? false)
+                      <img src="{{ asset('storage/' . $encounter->patient->enrollee_photo) }}" alt="">
                     @else
                       <span class="material-symbols-outlined" style="font-size:18px;color:{{ $priority == 'Red' ? '#dc2626' : ($priority == 'Yellow' ? '#d97706' : 'var(--doc-primary)') }}">person</span>
                     @endif
                   </div>
                   <div>
-                    <div class="patient-name">{{ $encounter->patient->beneficiary->fullname ?? 'N/A' }}</div>
-                    <div class="patient-id">{{ $encounter->patient->beneficiary->boschma_no ?? '' }}</div>
+                    <div class="patient-name">{{ $encounter->patient->enrollee_name ?? 'N/A' }}</div>
+                    <div class="patient-id">{{ $encounter->patient->enrollee_number ?? '' }}</div>
                   </div>
                 </div>
               </td>
