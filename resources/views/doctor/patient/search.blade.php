@@ -60,7 +60,7 @@
                             <div class="card-body p-3 d-flex gap-3 align-items-start">
                                 <div class="flex-shrink-0">
                                     @if($info?->photo)
-                                        <img src="{{ 'http://eboschma.bornostate.gov.ng/storage/' . $info->photo }}" class="rounded-circle object-fit-cover" width="52" height="52" alt="">
+                                        <img src="{{ $info->photo }}" class="rounded-circle object-fit-cover" width="52" height="52" alt="">
                                     @else
                                         <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:52px;height:52px">
                                             <span class="material-symbols-outlined text-primary">person</span>

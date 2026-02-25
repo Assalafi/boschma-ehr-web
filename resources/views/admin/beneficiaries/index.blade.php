@@ -106,7 +106,7 @@
                             <div class="d-flex align-items-center">
                                 <div class="flex-shrink-0">
                                     @if($beneficiary->photo)
-                                    <img src="{{ 'http://eboschma.bornostate.gov.ng/storage/' . $beneficiary->photo }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <img src="{{ $beneficiary->photo }}" class="rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
                                     @else
                                     <div class="avatar avatar-sm bg-light rounded-circle d-flex align-items-center justify-content-center">
                                         <span class="material-symbols-outlined text-muted">person</span>

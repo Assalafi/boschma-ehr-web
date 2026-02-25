@@ -185,7 +185,7 @@
                 <div class="patient-cell">
                   <div class="patient-avatar" style="background:{{ $priority == 'Red' ? '#fee2e2' : ($priority == 'Yellow' ? '#fef3c7' : 'var(--doc-primary-light)') }}">
                     @if($encounter->patient->enrollee_photo ?? false)
-                      <img src="{{ 'http://eboschma.bornostate.gov.ng/storage/' . $encounter->patient->enrollee_photo }}" alt="">
+                      <img src="{{ $encounter->patient->enrollee_photo }}" alt="">
                     @else
                       <span class="material-symbols-outlined" style="font-size:18px;color:{{ $priority == 'Red' ? '#dc2626' : ($priority == 'Yellow' ? '#d97706' : 'var(--doc-primary)') }}">person</span>
                     @endif
