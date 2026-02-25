@@ -93,7 +93,7 @@
         </div>
       </div>
 
-      @if($consultation->status != 'Completed')
+      @if($consultation->status == 'Completedss')
       <div class="doc-card">
         <div style="padding:16px 20px;display:flex;flex-direction:column;gap:8px">
           <button class="doc-btn doc-btn-primary" style="justify-content:center" data-bs-toggle="modal" data-bs-target="#prescriptionModal">

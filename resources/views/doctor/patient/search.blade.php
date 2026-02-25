@@ -24,7 +24,7 @@
                 </span>
                 <input type="text" name="q" class="form-control border-start-0 ps-0" 
                     placeholder="Search by name, BOSCHMA ID, file number, phone or NIN..."
-                    value="{{ $query }}" autofocus autocomplete="off" id="searchInput">
+                    value="{{ $query }}" autocomplete="off" id="searchInput">
                 @if($query)
                 <a href="{{ route('doctor.patients') }}" class="btn btn-outline-secondary">
                     <span class="material-symbols-outlined align-middle">close</span>
@@ -51,7 +51,7 @@
         <div class="row g-3">
             @foreach($patients as $p)
                 @php
-                    $info = $p->beneficiary;
+                    $info = $p->enrollee;
                     $lastEncounter = $p->encounters()->latest('visit_date')->first();
                 @endphp
                 <div class="col-xl-4 col-md-6">
@@ -60,7 +60,7 @@
                             <div class="card-body p-3 d-flex gap-3 align-items-start">
                                 <div class="flex-shrink-0">
                                     @if($info?->photo)
-                                        <img src="{{ $info->photo }}" class="rounded-circle object-fit-cover" width="52" height="52" alt="">
+                                        <img src="{{ 'http://eboschma.bornostate.gov.ng/storage/' . $info->photo }}" class="rounded-circle object-fit-cover" width="52" height="52" alt="">
                                     @else
                                         <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:52px;height:52px">
                                             <span class="material-symbols-outlined text-primary">person</span>
