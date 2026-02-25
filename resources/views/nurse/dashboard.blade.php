@@ -212,8 +212,8 @@
                                             <span class="material-symbols-outlined fs-6">person</span>
                                         </div>
                                         <div>
-                                            <span class="fw-medium">{{ $vital->encounter->patient->beneficiary->fullname ?? 'N/A' }}</span>
-                                            <br><small class="text-muted">{{ $vital->encounter->patient->beneficiary->boschma_no ?? '' }}</small>
+                                            <span class="fw-medium">{{ $vital->encounter->patient->enrollee_name ?? 'N/A' }}</span>
+                                            <br><small class="text-muted">{{ $vital->encounter->patient->enrollee_number ?? '' }}</small>
                                         </div>
                                     </div>
                                 </td>

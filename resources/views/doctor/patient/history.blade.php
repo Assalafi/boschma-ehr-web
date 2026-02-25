@@ -56,19 +56,19 @@
       <div class="doc-card">
         <div style="background:var(--doc-primary);color:#fff;padding:24px;text-align:center">
           <div style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden">
-            @if($patient->beneficiary->photo ?? false)
-              <img src="{{ asset('storage/' . $patient->beneficiary->photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
+            @if($patient->enrollee_photo ?? false)
+              <img src="{{ asset('storage/' . $patient->enrollee_photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
             @else
               <span class="material-symbols-outlined" style="font-size:30px">person</span>
             @endif
           </div>
-          <h5 style="margin:0 0 6px;color:#fff;font-weight:700;font-size:16px">{{ $patient->beneficiary->fullname ?? 'N/A' }}</h5>
-          <span style="display:inline-block;padding:3px 12px;border-radius:20px;background:rgba(255,255,255,.2);font-size:12px">{{ $patient->beneficiary->boschma_no ?? '' }}</span>
+          <h5 style="margin:0 0 6px;color:#fff;font-weight:700;font-size:16px">{{ $patient->enrollee_name ?? 'N/A' }}</h5>
+          <span style="display:inline-block;padding:3px 12px;border-radius:20px;background:rgba(255,255,255,.2);font-size:12px">{{ $patient->enrollee_number ?? '' }}</span>
         </div>
         <div style="padding:16px 20px">
-          <div class="info-row"><span class="info-label">Gender</span><span class="info-value">{{ $patient->beneficiary->gender ?? 'N/A' }}</span></div>
-          <div class="info-row"><span class="info-label">Age</span><span class="info-value">{{ $patient->beneficiary->date_of_birth ? \Carbon\Carbon::parse($patient->beneficiary->date_of_birth)->age . ' years' : 'N/A' }}</span></div>
-          <div class="info-row"><span class="info-label">Phone</span><span class="info-value">{{ $patient->beneficiary->phone ?? 'N/A' }}</span></div>
+          <div class="info-row"><span class="info-label">Gender</span><span class="info-value">{{ $patient->enrollee_gender ?? 'N/A' }}</span></div>
+          <div class="info-row"><span class="info-label">Age</span><span class="info-value">{{ $patient->enrollee_dob ? \Carbon\Carbon::parse($patient->enrollee_dob)->age . ' years' : 'N/A' }}</span></div>
+          <div class="info-row"><span class="info-label">Phone</span><span class="info-value">{{ $patient->enrollee_phone ?? 'N/A' }}</span></div>
           <div class="info-row"><span class="info-label">Encounters</span><span class="doc-badge doc-badge-teal">{{ $encounters->count() }}</span></div>
         </div>
       </div>

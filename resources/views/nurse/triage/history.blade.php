@@ -96,10 +96,10 @@
                                 <div class="wh-40 bg-{{ $vital->overall_priority == 'Red' ? 'danger' : ($vital->overall_priority == 'Yellow' ? 'warning' : 'success') }}-subtle rounded-circle d-flex align-items-center justify-content-center me-2">
                                     <span class="material-symbols-outlined text-{{ $vital->overall_priority == 'Red' ? 'danger' : ($vital->overall_priority == 'Yellow' ? 'warning' : 'success') }} fs-6">person</span>
                                 </div>
-                                <span class="fw-medium">{{ $vital->encounter->patient->beneficiary->fullname ?? 'N/A' }}</span>
+                                <span class="fw-medium">{{ $vital->encounter->patient->enrollee_name ?? 'N/A' }}</span>
                             </div>
                         </td>
-                        <td><span class="badge bg-light text-dark">{{ $vital->encounter->patient->beneficiary->boschma_no ?? 'N/A' }}</span></td>
+                        <td><span class="badge bg-light text-dark">{{ $vital->encounter->patient->enrollee_number ?? 'N/A' }}</span></td>
                         <td>
                             <span class="badge bg-{{ $vital->overall_priority == 'Red' ? 'danger' : ($vital->overall_priority == 'Yellow' ? 'warning' : 'success') }}">
                                 {{ $vital->overall_priority }}

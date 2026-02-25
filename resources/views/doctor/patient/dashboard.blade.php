@@ -1,11 +1,11 @@
 @extends('layouts.app')
-@section('title', ($patient->beneficiary?->fullname ?? 'Patient') . ' — Dashboard')
+@section('title', ($patient->enrollee_name ?? 'Patient') . ' — Dashboard')
 @section('content')
 @php
-    $info = $patient->beneficiary;
-    $age  = $info?->date_of_birth ? \Carbon\Carbon::parse($info->date_of_birth)->age : null;
+    $info = $patient->enrollee;
+    $age  = $patient->enrollee_dob ? \Carbon\Carbon::parse($patient->enrollee_dob)->age : null;
     $latestVital = $allVitals->first();
-    $photo = $info?->photo ? asset('storage/'.$info->photo) : null;
+    $photo = $patient->enrollee_photo ? asset('storage/'.$patient->enrollee_photo) : null;
     $openEnc = $encounters->whereNotIn('status',['Completed','Cancelled'])->first();
 @endphp
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">

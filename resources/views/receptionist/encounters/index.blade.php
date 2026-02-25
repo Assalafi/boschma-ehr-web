@@ -75,19 +75,19 @@
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="wh-40 bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center me-2 overflow-hidden">
-                                    @if($encounter->patient->beneficiary->photo)
-                                        <img src="{{ asset('storage/' . $encounter->patient->beneficiary->photo) }}" class="rounded-circle wh-40 object-fit-cover" alt="">
+                                    @if($encounter->patient->enrollee_photo)
+                                        <img src="{{ asset('storage/' . $encounter->patient->enrollee_photo) }}" class="rounded-circle wh-40 object-fit-cover" alt="">
                                     @else
                                         <span class="material-symbols-outlined text-primary fs-6">person</span>
                                     @endif
                                 </div>
                                 <div>
-                                    <span class="fw-medium">{{ $encounter->patient->beneficiary->fullname ?? 'N/A' }}</span>
-                                    <br><small class="text-muted">{{ $encounter->patient->beneficiary->gender ?? '' }}</small>
+                                    <span class="fw-medium">{{ $encounter->patient->enrollee_name ?? 'N/A' }}</span>
+                                    <br><small class="text-muted">{{ $encounter->patient->enrollee_gender ?? '' }}</small>
                                 </div>
                             </div>
                         </td>
-                        <td><span class="badge bg-light text-dark">{{ $encounter->patient->beneficiary->boschma_no ?? 'N/A' }}</span></td>
+                        <td><span class="badge bg-light text-dark">{{ $encounter->patient->enrollee_number ?? 'N/A' }}</span></td>
                         <td>{{ $encounter->program->name ?? 'N/A' }}</td>
                         <td>{{ $encounter->nature_of_visit }}</td>
                         <td>
@@ -168,7 +168,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Cancel encounter for <strong>{{ $encounter->patient->beneficiary->fullname ?? 'this patient' }}</strong>?</p>
+                    <p>Cancel encounter for <strong>{{ $encounter->patient->enrollee_name ?? 'this patient' }}</strong>?</p>
                     <div class="mb-3">
                         <label class="form-label">Reason <span class="text-danger">*</span></label>
                         <textarea name="cancellation_reason" class="form-control" rows="3" required></textarea>

@@ -70,15 +70,15 @@
         <div style="padding:16px 20px">
           <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
             <div style="width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--doc-primary-light)">
-              @if($order->encounter->patient->beneficiary->photo ?? false)
-                <img src="{{ asset('storage/' . $order->encounter->patient->beneficiary->photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
+              @if($order->encounter->patient->enrollee_photo ?? false)
+                <img src="{{ asset('storage/' . $order->encounter->patient->enrollee_photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
               @else
                 <span class="material-symbols-outlined" style="font-size:24px;color:var(--doc-primary)">person</span>
               @endif
             </div>
             <div>
-              <div style="font-weight:700;font-size:15px;color:#1e293b">{{ $order->encounter->patient->beneficiary->fullname ?? 'N/A' }}</div>
-              <div style="font-size:12px;color:#94a3b8">{{ $order->encounter->patient->beneficiary->boschma_no ?? '' }}</div>
+              <div style="font-weight:700;font-size:15px;color:#1e293b">{{ $order->encounter->patient->enrollee_name ?? 'N/A' }}</div>
+              <div style="font-size:12px;color:#94a3b8">{{ $order->encounter->patient->enrollee_number ?? '' }}</div>
             </div>
           </div>
           <div class="info-row"><span class="info-label">Age/Gender</span><span class="info-value">{{ $order->encounter->patient->age }}y, {{ $order->encounter->patient->gender }}</span></div>

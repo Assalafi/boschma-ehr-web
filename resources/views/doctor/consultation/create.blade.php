@@ -16,8 +16,8 @@
             'procedures' => $consultation->procedures->pluck('procedure_name')->toArray(),
         ];
     }
-    $beneficiary = $encounter->patient->beneficiary ?? null;
-    $age = $beneficiary?->date_of_birth ? \Carbon\Carbon::parse($beneficiary->date_of_birth)->age : null;
+    $beneficiary = $encounter->patient->enrollee;
+    $age = $encounter->patient->enrollee_dob ? \Carbon\Carbon::parse($encounter->patient->enrollee_dob)->age : null;
 @endphp
 
 <style>

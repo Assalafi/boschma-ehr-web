@@ -43,25 +43,25 @@
             <div class="card-header bg-primary text-white p-4">
                 <div class="text-center">
                     <div class="wh-80 bg-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 overflow-hidden">
-                        @if($encounter->patient->beneficiary->photo ?? false)
-                            <img src="{{ asset('storage/' . $encounter->patient->beneficiary->photo) }}" class="rounded-circle wh-80 object-fit-cover" alt="">
+                        @if($encounter->patient->enrollee_photo ?? false)
+                            <img src="{{ asset('storage/' . $encounter->patient->enrollee_photo) }}" class="rounded-circle wh-80 object-fit-cover" alt="">
                         @else
                             <span class="material-symbols-outlined text-primary" style="font-size: 2.5rem;">person</span>
                         @endif
                     </div>
-                    <h5 class="mb-1 text-white">{{ $encounter->patient->beneficiary->fullname ?? 'N/A' }}</h5>
-                    <span class="badge bg-light text-dark">{{ $encounter->patient->beneficiary->boschma_no ?? 'N/A' }}</span>
+                    <h5 class="mb-1 text-white">{{ $encounter->patient->enrollee_name ?? 'N/A' }}</h5>
+                    <span class="badge bg-light text-dark">{{ $encounter->patient->enrollee_number ?? 'N/A' }}</span>
                 </div>
             </div>
             <div class="card-body p-4">
                 <ul class="list-unstyled mb-0">
                     <li class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted">Gender</span>
-                        <span class="fw-medium">{{ $encounter->patient->beneficiary->gender ?? 'N/A' }}</span>
+                        <span class="fw-medium">{{ $encounter->patient->enrollee_gender ?? 'N/A' }}</span>
                     </li>
                     <li class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted">Age</span>
-                        <span class="fw-medium">{{ $encounter->patient->beneficiary->date_of_birth ? \Carbon\Carbon::parse($encounter->patient->beneficiary->date_of_birth)->age . ' years' : 'N/A' }}</span>
+                        <span class="fw-medium">{{ $encounter->patient->enrollee_dob ? \Carbon\Carbon::parse($encounter->patient->enrollee_dob)->age . ' years' : 'N/A' }}</span>
                     </li>
                     <li class="d-flex justify-content-between py-2">
                         <span class="text-muted">Program</span>

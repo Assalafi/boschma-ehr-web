@@ -86,8 +86,8 @@
             <div style="font-size:11px;color:#94a3b8">{{ $consultation->created_at->format('H:i') }}</div>
           </td>
           <td>
-            <div style="font-weight:600;color:#1e293b;font-size:13px">{{ $consultation->encounter->patient->beneficiary->fullname ?? 'N/A' }}</div>
-            <div style="font-size:11px;color:#94a3b8">{{ $consultation->encounter->patient->beneficiary->boschma_no ?? '' }}</div>
+            <div style="font-weight:600;color:#1e293b;font-size:13px">{{ $consultation->encounter->patient->enrollee_name ?? 'N/A' }}</div>
+            <div style="font-size:11px;color:#94a3b8">{{ $consultation->encounter->patient->enrollee_number ?? '' }}</div>
           </td>
           <td style="font-size:12px;color:#64748b">Dr. {{ $consultation->doctor->name ?? 'N/A' }}</td>
           <td>

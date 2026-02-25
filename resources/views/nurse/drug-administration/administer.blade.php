@@ -35,15 +35,15 @@
                 <ul class="list-unstyled mb-0">
                     <li class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted">Name</span>
-                        <span class="fw-medium">{{ $prescriptionItem->prescription->consultation->encounter->patient->beneficiary->fullname ?? 'N/A' }}</span>
+                        <span class="fw-medium">{{ $prescriptionItem->prescription->consultation->encounter->patient->enrollee_name ?? 'N/A' }}</span>
                     </li>
                     <li class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted">BOSCHMA No</span>
-                        <span class="fw-medium">{{ $prescriptionItem->prescription->consultation->encounter->patient->beneficiary->boschma_no ?? 'N/A' }}</span>
+                        <span class="fw-medium">{{ $prescriptionItem->prescription->consultation->encounter->patient->enrollee_number ?? 'N/A' }}</span>
                     </li>
                     <li class="d-flex justify-content-between py-2">
                         <span class="text-muted">Gender</span>
-                        <span class="fw-medium">{{ $prescriptionItem->prescription->consultation->encounter->patient->beneficiary->gender ?? 'N/A' }}</span>
+                        <span class="fw-medium">{{ $prescriptionItem->prescription->consultation->encounter->patient->enrollee_gender ?? 'N/A' }}</span>
                     </li>
                 </ul>
             </div>

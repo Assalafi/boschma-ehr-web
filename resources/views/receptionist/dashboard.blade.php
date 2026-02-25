@@ -194,11 +194,11 @@
                                             <span class="material-symbols-outlined text-primary fs-6">person</span>
                                         </div>
                                         <div>
-                                            <span class="fw-medium">{{ $encounter->patient->beneficiary->fullname ?? 'N/A' }}</span>
+                                            <span class="fw-medium">{{ $encounter->patient->enrollee_name ?? 'N/A' }}</span>
                                         </div>
                                     </div>
                                 </td>
-                                <td><span class="badge bg-light text-dark">{{ $encounter->patient->beneficiary->boschma_no ?? 'N/A' }}</span></td>
+                                <td><span class="badge bg-light text-dark">{{ $encounter->patient->enrollee_number ?? 'N/A' }}</span></td>
                                 <td>{{ $encounter->nature_of_visit }}</td>
                                 <td>
                                     @php
@@ -294,7 +294,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to cancel this encounter for <strong>{{ $encounter->patient->beneficiary->fullname ?? 'this patient' }}</strong>?</p>
+                    <p>Are you sure you want to cancel this encounter for <strong>{{ $encounter->patient->enrollee_name ?? 'this patient' }}</strong>?</p>
                     <div class="mb-3">
                         <label class="form-label">Reason for Cancellation <span class="text-danger">*</span></label>
                         <textarea name="cancellation_reason" class="form-control" rows="3" required placeholder="Enter reason for cancellation..."></textarea>

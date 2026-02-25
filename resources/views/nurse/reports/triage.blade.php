@@ -195,8 +195,8 @@
                     @forelse($records as $index => $vital)
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td>{{ $vital->encounter->patient->beneficiary->fullname ?? 'N/A' }}</td>
-                        <td><small>{{ $vital->encounter->patient->beneficiary->boschma_no ?? 'N/A' }}</small></td>
+                        <td>{{ $vital->encounter->patient->enrollee_name ?? 'N/A' }}</td>
+                        <td><small>{{ $vital->encounter->patient->enrollee_number ?? 'N/A' }}</small></td>
                         <td>
                             <span class="badge bg-{{ $vital->overall_priority == 'Red' ? 'danger' : ($vital->overall_priority == 'Yellow' ? 'warning' : 'success') }}">
                                 {{ $vital->overall_priority }}

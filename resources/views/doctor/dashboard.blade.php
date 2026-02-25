@@ -291,7 +291,7 @@
         <div class="recent-item">
           <div class="d-flex justify-content-between align-items-start">
             <div>
-              <div style="font-weight:600;font-size:13px;color:#1e293b">{{ $consultation->encounter->patient->beneficiary->fullname ?? 'N/A' }}</div>
+              <div style="font-weight:600;font-size:13px;color:#1e293b">{{ $consultation->encounter->patient->enrollee_name ?? 'N/A' }}</div>
               <div style="font-size:11px;color:#94a3b8;margin-top:2px">{{ $consultation->diagnoses->first()?->icdCode?->description ?? 'No diagnosis' }}</div>
             </div>
             <div class="text-end">
