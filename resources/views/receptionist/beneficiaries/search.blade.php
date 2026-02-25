@@ -104,7 +104,7 @@
                             @endif
                         </td>
                         <td class="text-center">
-                            <a href="{{ route('receptionist.beneficiaries.show', $beneficiary) }}" class="btn btn-sm btn-primary">
+                            <a href="{{ route('receptionist.beneficiaries.show', $beneficiary->original) }}" class="btn btn-sm btn-primary">
                                 <span class="material-symbols-outlined fs-6">login</span> Register
                             </a>
                         </td>
