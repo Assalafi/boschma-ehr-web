@@ -136,7 +136,7 @@ class DoctorController extends Controller
         $user       = Auth::user();
         $facilityId = $user->facility_id;
 
-        $base = Encounter::with(['patient.beneficiary', 'vitalSigns', 'program', 'consultations'])
+        $base = Encounter::with(['patient', 'vitalSigns', 'program', 'consultations'])
             ->where('facility_id', $facilityId);
 
         // 1. Awaiting Consultation — triaged, no consultation started
@@ -149,8 +149,11 @@ class DoctorController extends Controller
             ->whereDoesntHave('consultations')
             ->whereHas('vitalSigns')
             ->get()
-            ->sortBy(fn($e) => match($e->vitalSigns->first()?->overall_priority ?? 'Green') {
-                'Red' => 1, 'Yellow' => 2, 'Green' => 3, default => 4
+            ->sortBy(fn($e) => match(strtolower($e->vitalSigns->first()?->overall_priority ?? 'Green')) {
+                'red', 'critical', 'high' => 1, 
+                'yellow', 'urgent' => 2, 
+                'green', 'normal' => 3, 
+                default => 4
             });
 
         // 2. In Consultation — has an active (in-progress) consultation
