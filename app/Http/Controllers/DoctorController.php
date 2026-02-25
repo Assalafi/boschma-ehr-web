@@ -1243,8 +1243,7 @@ class DoctorController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('encounter.patient', function($q) use ($search) {
-                $q->where('fullname', 'like', "%{$search}%")
-                  ->orWhere('boschma_no', 'like', "%{$search}%");
+                $q->search($search);
             });
         }
 
