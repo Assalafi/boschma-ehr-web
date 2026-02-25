@@ -97,7 +97,16 @@ class Patient extends Model
 
     public function getEnrolleePhotoAttribute()
     {
-        return $this->enrollee?->photo ?? null;
+        $photo = $this->enrollee?->photo;
+        if ($photo) {
+            // If it's already a full URL, return as is
+            if (str_starts_with($photo, 'http')) {
+                return $photo;
+            }
+            // Otherwise, construct URL from the external system
+            return 'http://eboschma.bornostate.gov.ng/storage/' . ltrim($photo, '/');
+        }
+        return null;
     }
 
     public function getEnrolleeDetailsAttribute()

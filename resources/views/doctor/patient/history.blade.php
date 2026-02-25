@@ -57,7 +57,7 @@
         <div style="background:var(--doc-primary);color:#fff;padding:24px;text-align:center">
           <div style="width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;overflow:hidden">
             @if($patient->enrollee_photo ?? false)
-              <img src="{{ asset('storage/' . $patient->enrollee_photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
+              <img src="{{ $patient->enrollee_photo }}" style="width:100%;height:100%;object-fit:cover" alt="">
             @else
               <span class="material-symbols-outlined" style="font-size:30px">person</span>
             @endif

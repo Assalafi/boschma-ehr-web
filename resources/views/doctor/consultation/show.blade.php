@@ -78,7 +78,7 @@
         <div style="background:{{ $priority == 'Red' ? '#dc2626' : ($priority == 'Yellow' ? '#d97706' : 'var(--doc-primary)') }};color:#fff;padding:20px;text-align:center">
           <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;overflow:hidden">
             @if($consultation->encounter->patient->enrollee_photo ?? false)
-              <img src="{{ asset('storage/' . $consultation->encounter->patient->enrollee_photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
+              <img src="{{ $consultation->encounter->patient->enrollee_photo }}" style="width:100%;height:100%;object-fit:cover" alt="">
             @else
               <span class="material-symbols-outlined" style="font-size:28px">person</span>
             @endif

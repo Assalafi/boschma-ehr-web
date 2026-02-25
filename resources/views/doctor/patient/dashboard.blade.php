@@ -5,7 +5,7 @@
     $info = $patient->enrollee;
     $age  = $patient->enrollee_dob ? \Carbon\Carbon::parse($patient->enrollee_dob)->age : null;
     $latestVital = $allVitals->first();
-    $photo = $patient->enrollee_photo ? asset('storage/'.$patient->enrollee_photo) : null;
+    $photo = $patient->enrollee_photo;
     $openEnc = $encounters->whereNotIn('status',['Completed','Cancelled'])->first();
 @endphp
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
