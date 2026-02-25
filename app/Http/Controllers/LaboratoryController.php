@@ -64,7 +64,7 @@ class LaboratoryController extends Controller
 
         $query = ServiceOrderItem::with([
                 'serviceItem.serviceType.serviceCategory',
-                'serviceOrder.encounter.patient.beneficiary',
+                'serviceOrder.encounter.patient',
                 'serviceOrder.orderedBy',
                 'latestResult',
             ])
@@ -79,9 +79,7 @@ class LaboratoryController extends Controller
         if ($request->search) {
             $search = $request->search;
             $query->whereHas('serviceOrder.encounter.patient', function ($q) use ($search) {
-                $q->where('file_number', 'like', "%$search%")
-                  ->orWhereHas('beneficiary', fn($b) => $b->where('fullname', 'like', "%$search%")
-                      ->orWhere('name', 'like', "%$search%"));
+                $q->search($search);
             });
         }
 
@@ -101,7 +99,7 @@ class LaboratoryController extends Controller
     {
         $item->load([
             'serviceItem.serviceType.serviceCategory',
-            'serviceOrder.encounter.patient.beneficiary',
+            'serviceOrder.encounter.patient',
             'serviceOrder.encounter.vitalSigns',
             'serviceOrder.encounter.consultations.doctor',
             'serviceOrder.encounter.consultations.diagnoses',

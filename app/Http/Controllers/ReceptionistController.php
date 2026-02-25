@@ -9,6 +9,8 @@ use Illuminate\Support\Str;
 use App\Models\Encounter;
 use App\Models\Patient;
 use App\Models\Beneficiary;
+use App\Models\Spouse;
+use App\Models\Child;
 use App\Models\Program;
 use App\Models\EncounterAction;
 use App\Enums\ActionType;
@@ -96,16 +98,17 @@ class ReceptionistController extends Controller
     }
 
     /**
-     * Search for beneficiaries belonging to this facility
+     * Search for enrollees (beneficiaries, spouses, children) belonging to this facility
      */
     public function searchBeneficiary(Request $request)
     {
         $facilityId = $this->getFacilityId();
         $query = $request->get('q');
         
-        $beneficiaries = collect();
+        $enrollees = collect();
         
         if ($query && strlen($query) >= 2) {
+            // Search beneficiaries
             $beneficiaries = Beneficiary::where('facility_id', $facilityId)
                 ->where(function($q) use ($query) {
                     $q->where('fullname', 'like', "%{$query}%")
@@ -114,14 +117,77 @@ class ReceptionistController extends Controller
                       ->orWhere('phone_no', 'like', "%{$query}%");
                 })
                 ->with(['patient', 'program'])
-                ->take(20)
-                ->get();
+                ->take(10)
+                ->get()
+                ->map(fn($b) => (object)[
+                    'id' => $b->id, 'type' => 'beneficiary',
+                    'name' => $b->fullname, 'boschma_no' => $b->boschma_no,
+                    'gender' => $b->gender, 'dob' => $b->date_of_birth,
+                    'nin' => $b->nin, 'phone' => $b->phone_no,
+                    'photo' => $b->photo, 'status' => $b->status,
+                    'program_name' => $b->program->name ?? 'N/A',
+                    'facility_id' => $b->facility_id,
+                    'program_id' => $b->program_id,
+                    'patient' => $b->patient,
+                    'original' => $b,
+                ]);
+
+            // Search spouses
+            $spouses = Spouse::where('facility_id', $facilityId)
+                ->where(function($q) use ($query) {
+                    $q->where('name', 'like', "%{$query}%")
+                      ->orWhere('boschma_no', 'like', "%{$query}%")
+                      ->orWhere('nin', 'like', "%{$query}%")
+                      ->orWhere('phone', 'like', "%{$query}%");
+                })
+                ->with(['beneficiary.program', 'patient'])
+                ->take(10)
+                ->get()
+                ->map(fn($s) => (object)[
+                    'id' => $s->id, 'type' => 'spouse',
+                    'name' => $s->name, 'boschma_no' => $s->boschma_no,
+                    'gender' => $s->gender, 'dob' => $s->dob,
+                    'nin' => $s->nin, 'phone' => $s->phone,
+                    'photo' => $s->photo, 'status' => 'Active',
+                    'program_name' => $s->beneficiary->program->name ?? 'N/A',
+                    'facility_id' => $s->facility_id ?? $s->beneficiary->facility_id,
+                    'program_id' => $s->beneficiary->program_id ?? null,
+                    'patient' => $s->patient,
+                    'original' => $s,
+                ]);
+
+            // Search children
+            $children = Child::where('facility_id', $facilityId)
+                ->where(function($q) use ($query) {
+                    $q->where('name', 'like', "%{$query}%")
+                      ->orWhere('boschma_no', 'like', "%{$query}%")
+                      ->orWhere('nin', 'like', "%{$query}%");
+                })
+                ->with(['beneficiary.program', 'patient'])
+                ->take(10)
+                ->get()
+                ->map(fn($c) => (object)[
+                    'id' => $c->id, 'type' => 'child',
+                    'name' => $c->name, 'boschma_no' => $c->boschma_no,
+                    'gender' => $c->gender, 'dob' => $c->dob,
+                    'nin' => $c->nin, 'phone' => null,
+                    'photo' => $c->photo, 'status' => 'Active',
+                    'program_name' => $c->beneficiary->program->name ?? 'N/A',
+                    'facility_id' => $c->facility_id ?? $c->beneficiary->facility_id,
+                    'program_id' => $c->beneficiary->program_id ?? null,
+                    'patient' => $c->patient,
+                    'original' => $c,
+                ]);
+
+            $enrollees = $beneficiaries->concat($spouses)->concat($children)->take(20);
         }
         
         if ($request->ajax()) {
-            return response()->json($beneficiaries);
+            return response()->json($enrollees);
         }
         
+        // Keep variable name for backward compat with view
+        $beneficiaries = $enrollees;
         return view('receptionist.beneficiaries.search', compact('beneficiaries', 'query'));
     }
 
@@ -250,7 +316,7 @@ class ReceptionistController extends Controller
         $date = $request->get('date', today()->format('Y-m-d'));
         $status = $request->get('status');
         
-        $query = Encounter::with(['patient.beneficiary', 'program', 'officerInCharge'])
+        $query = Encounter::with(['patient', 'program', 'officerInCharge'])
             ->where('facility_id', $facilityId)
             ->whereDate('created_at', $date);
         
@@ -285,7 +351,7 @@ class ReceptionistController extends Controller
         }
         
         $encounter->load([
-            'patient.beneficiary',
+            'patient',
             'program',
             'facility',
             'officerInCharge',
@@ -337,13 +403,12 @@ class ReceptionistController extends Controller
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
         
-        $query = Encounter::with(['patient.beneficiary', 'program'])
+        $query = Encounter::with(['patient', 'program'])
             ->where('facility_id', $facilityId);
         
         if ($search) {
-            $query->whereHas('patient.beneficiary', function($q) use ($search) {
-                $q->where('fullname', 'like', "%{$search}%")
-                  ->orWhere('boschma_no', 'like', "%{$search}%");
+            $query->whereHas('patient', function($q) use ($search) {
+                $q->search($search);
             });
         }
         
@@ -368,7 +433,7 @@ class ReceptionistController extends Controller
         $facilityId = $this->getFacilityId();
         $status = $request->get('status', 'pending');
         
-        $query = Encounter::with(['patient.beneficiary', 'program'])
+        $query = Encounter::with(['patient', 'program'])
             ->where('facility_id', $facilityId)
             ->where('mode_of_entry', 'Referral');
         

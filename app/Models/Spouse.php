@@ -37,4 +37,9 @@ class Spouse extends Model
     {
         return $this->belongsTo(Facility::class);
     }
+
+    public function patient()
+    {
+        return $this->hasOne(Patient::class, 'enrollee_number', 'boschma_no');
+    }
 }

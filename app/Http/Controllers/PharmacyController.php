@@ -83,8 +83,7 @@ class PharmacyController extends Controller
         if ($request->filled('search')) {
             $s = $request->search;
             $query->whereHas('consultation.encounter.patient', fn($q) =>
-                $q->where('file_number', 'like', "%$s%")
-                  ->orWhere('enrollee_number', 'like', "%$s%"));
+                $q->search($s));
         }
 
         $pendingCount = $query->count();

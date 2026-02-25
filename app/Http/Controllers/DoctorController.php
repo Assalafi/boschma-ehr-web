@@ -1259,15 +1259,7 @@ class DoctorController extends Controller
         $patients = collect();
 
         if ($query && strlen($query) >= 2) {
-            $patients = Patient::with(['beneficiary'])
-                ->where(function($q) use ($query) {
-                    $q->where('file_number', 'LIKE', "%{$query}%")
-                      ->orWhere('enrollee_number', 'LIKE', "%{$query}%")
-                      ->orWhereHas('beneficiary', fn($bq) => $bq->where('fullname', 'LIKE', "%{$query}%")
-                          ->orWhere('phone_no', 'LIKE', "%{$query}%")
-                          ->orWhere('nin', 'LIKE', "%{$query}%")
-                      );
-                })
+            $patients = Patient::search($query)
                 ->limit(30)
                 ->get();
         }
@@ -1280,7 +1272,7 @@ class DoctorController extends Controller
      */
     public function patientDashboard(Patient $patient)
     {
-        $patient->load(['beneficiary']);
+        // No need to load beneficiary - Patient has unified accessors
 
         $encounters = Encounter::with([
             'consultations.doctor',
@@ -1345,7 +1337,7 @@ class DoctorController extends Controller
     public function patientHistory($patientId)
     {
         $encounters = Encounter::with([
-            'patient.beneficiary',
+            'patient',
             'consultations.diagnoses.icdCode',
             'consultations.prescriptions.items.drug',
             'consultations.doctor',

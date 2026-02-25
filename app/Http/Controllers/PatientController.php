@@ -15,12 +15,9 @@ class PatientController extends Controller
         $query = $request->get('q');
         $patients = collect();
         
-        if ($query) {
-            $patients = Beneficiary::where('fullname', 'like', "%{$query}%")
-                ->orWhere('boschma_no', 'like', "%{$query}%")
-                ->orWhere('nin', 'like', "%{$query}%")
-                ->orWhere('phone', 'like', "%{$query}%")
-                ->take(20)
+        if ($query && strlen($query) >= 2) {
+            $patients = Patient::search($query)
+                ->limit(20)
                 ->get();
         }
 
@@ -58,7 +55,7 @@ class PatientController extends Controller
 
     public function show(Patient $patient)
     {
-        $patient->load(['beneficiary', 'encounters.consultations']);
+        $patient->load(['encounters.consultations']);
         return view('receptionist.patients.show', compact('patient'));
     }
 

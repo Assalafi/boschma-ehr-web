@@ -173,7 +173,7 @@ class NurseController extends Controller
     public function triageHistory(Request $request)
     {
         $user = Auth::user();
-        $query = VitalSign::with(['encounter.patient.beneficiary', 'encounter.program', 'takenBy'])
+        $query = VitalSign::with(['encounter.patient', 'encounter.program', 'takenBy'])
             ->whereHas('encounter', function($q) use ($user) {
                 $q->where('facility_id', $user->facility_id);
             });
@@ -191,9 +191,8 @@ class NurseController extends Controller
         // Search by patient name or BOSCHMA
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('encounter.patient.beneficiary', function($q) use ($search) {
-                $q->where('fullname', 'like', "%{$search}%")
-                  ->orWhere('boschma_no', 'like', "%{$search}%");
+            $query->whereHas('encounter.patient', function($q) use ($search) {
+                $q->search($search);
             });
         }
         
@@ -207,7 +206,7 @@ class NurseController extends Controller
      */
     public function triageEdit(Encounter $encounter)
     {
-        $encounter->load(['patient.beneficiary', 'vitalSigns', 'program']);
+        $encounter->load(['patient', 'vitalSigns', 'program']);
         $vitalSign = $encounter->vitalSigns->first();
         
         if (!$vitalSign) {

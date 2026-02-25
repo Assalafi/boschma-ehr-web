@@ -2,15 +2,15 @@
     <div class="card-header bg-{{ $priority == 'Red' ? 'danger' : ($priority == 'Yellow' ? 'warning' : 'primary') }} text-{{ $priority == 'Yellow' ? 'dark' : 'white' }} p-3">
         <div class="d-flex align-items-center">
             <div class="wh-45 bg-white rounded-circle d-flex align-items-center justify-content-center me-2 overflow-hidden">
-                @if($encounter->patient->beneficiary->photo ?? false)
-                    <img src="{{ asset('storage/' . $encounter->patient->beneficiary->photo) }}" class="wh-45 object-fit-cover" alt="">
+                @if($encounter->patient->enrollee_photo ?? false)
+                    <img src="{{ asset('storage/' . $encounter->patient->enrollee_photo) }}" class="wh-45 object-fit-cover" alt="">
                 @else
                     <span class="material-symbols-outlined text-primary">person</span>
                 @endif
             </div>
             <div>
-                <strong class="d-block">{{ Str::limit($encounter->patient->beneficiary->fullname ?? 'N/A', 18) }}</strong>
-                <small>{{ $encounter->patient->beneficiary->gender ?? '' }} | {{ $encounter->patient->beneficiary->date_of_birth ? \Carbon\Carbon::parse($encounter->patient->beneficiary->date_of_birth)->age . 'yrs' : '' }}</small>
+                <strong class="d-block">{{ Str::limit($encounter->patient->enrollee_name ?? 'N/A', 18) }}</strong>
+                <small>{{ $encounter->patient->enrollee_gender ?? '' }} | {{ $encounter->patient->enrollee_dob ? \Carbon\Carbon::parse($encounter->patient->enrollee_dob)->age . 'yrs' : '' }}</small>
             </div>
         </div>
     </div>

@@ -140,7 +140,7 @@ class Encounter extends Model
      */
     public function getPatientNameAttribute()
     {
-        return $this->patient?->full_info['fullname'] ?? 'Unknown Patient';
+        return $this->patient?->enrollee_name ?? 'Unknown Patient';
     }
 
     /**
@@ -148,7 +148,7 @@ class Encounter extends Model
      */
     public function getPatientBoschmaNoAttribute()
     {
-        return $this->patient?->full_info['boschma_no'] ?? '';
+        return $this->patient?->enrollee_number ?? '';
     }
 
     /**

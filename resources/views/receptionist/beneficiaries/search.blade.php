@@ -87,14 +87,14 @@
                                     @endif
                                 </div>
                                 <div>
-                                    <span class="fw-medium">{{ $beneficiary->fullname }}</span>
-                                    <br><small class="text-muted">{{ $beneficiary->gender }} • {{ $beneficiary->date_of_birth ? \Carbon\Carbon::parse($beneficiary->date_of_birth)->age . ' yrs' : 'N/A' }}</small>
+                                    <span class="fw-medium">{{ $beneficiary->name }}</span>
+                                    <br><small class="text-muted">{{ $beneficiary->gender }} • {{ $beneficiary->dob ? \Carbon\Carbon::parse($beneficiary->dob)->age . ' yrs' : 'N/A' }}</small>
                                 </div>
                             </div>
                         </td>
                         <td><span class="badge bg-light text-dark fw-medium">{{ $beneficiary->boschma_no }}</span></td>
                         <td>{{ $beneficiary->nin ?? 'N/A' }}</td>
-                        <td>{{ $beneficiary->phone_no ?? 'N/A' }}</td>
+                        <td>{{ $beneficiary->phone ?? 'N/A' }}</td>
                         <td>{{ $beneficiary->program->name ?? 'N/A' }}</td>
                         <td>
                             @if($beneficiary->status === 'Active')

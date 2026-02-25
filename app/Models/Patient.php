@@ -10,89 +10,131 @@ class Patient extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = [
-        'file_number',
-        'enrollee_number',
-        'enrollee_type',
-    ];
-
+    protected $fillable = ['file_number', 'enrollee_number', 'enrollee_type'];
     protected $keyType = 'string';
     public $incrementing = false;
 
-    /**
-     * Get the enrollee details based on type
-     */
-    public function getEnrolleeDetailsAttribute()
-    {
-        switch ($this->enrollee_type) {
-            case 'beneficiary':
-                return Beneficiary::where('boschma_no', $this->enrollee_number)->first();
-            case 'spouse':
-                return Spouse::where('boschma_no', $this->enrollee_number)->first();
-            case 'child':
-                return Child::where('boschma_no', $this->enrollee_number)->first();
-            default:
-                return null;
-        }
-    }
-
-    /**
-     * Get full enrollee information with all details
-     */
-    public function getFullInfoAttribute()
-    {
-        $details = $this->enrolleeDetails;
-        
-        if (!$details) {
-            return null;
-        }
-
-        return [
-            'id' => $this->id,
-            'file_number' => $this->file_number,
-            'enrollee_number' => $this->enrollee_number,
-            'enrollee_type' => $this->enrollee_type,
-            'fullname' => $details->fullname ?? '',
-            'boschma_no' => $this->enrollee_number,
-            'nin' => $details->nin ?? '',
-            'gender' => $details->gender ?? '',
-            'date_of_birth' => $details->date_of_birth ?? '',
-            'phone_no' => $details->phone_no ?? $details->phone ?? '',
-            'email' => $details->email ?? '',
-        ];
-    }
-
-    /**
-     * Get the beneficiary relationship
-     */
     public function beneficiary()
     {
         return $this->belongsTo(Beneficiary::class, 'enrollee_number', 'boschma_no');
     }
 
-    /**
-     * Get encounters for this patient
-     */
+    public function spouse()
+    {
+        return $this->belongsTo(Spouse::class, 'enrollee_number', 'boschma_no');
+    }
+
+    public function child()
+    {
+        return $this->belongsTo(Child::class, 'enrollee_number', 'boschma_no');
+    }
+
     public function encounters()
     {
         return $this->hasMany(Encounter::class);
     }
 
-    /**
-     * Get programs patient is enrolled in through encounters
-     */
     public function programs()
     {
-        return $this->belongsToMany(Program::class, 'encounters', 'patient_id', 'program_id')
-            ->distinct();
+        return $this->belongsToMany(Program::class, 'encounters', 'patient_id', 'program_id')->distinct();
     }
 
-    /**
-     * Scope to search patients
-     */
+    public function getEnrolleeAttribute()
+    {
+        if ($this->enrollee_type === 'spouse') {
+            return $this->relationLoaded('spouse') ? $this->spouse : Spouse::where('boschma_no', $this->enrollee_number)->first();
+        }
+        if ($this->enrollee_type === 'child') {
+            return $this->relationLoaded('child') ? $this->child : Child::where('boschma_no', $this->enrollee_number)->first();
+        }
+        return $this->relationLoaded('beneficiary') ? $this->beneficiary : Beneficiary::where('boschma_no', $this->enrollee_number)->first();
+    }
+
+    public function getUltimateBeneficiaryAttribute()
+    {
+        $e = $this->enrollee;
+        if ($e instanceof Spouse || $e instanceof Child) {
+            return $e->beneficiary;
+        }
+        return $e;
+    }
+
+    public function getEnrolleeNameAttribute()
+    {
+        $e = $this->enrollee;
+        return $e->fullname ?? $e->name ?? 'Unknown';
+    }
+
+    public function getEnrolleeGenderAttribute()
+    {
+        return $this->enrollee->gender ?? '';
+    }
+
+    public function getEnrolleeDobAttribute()
+    {
+        $e = $this->enrollee;
+        return $e->date_of_birth ?? $e->dob ?? null;
+    }
+
+    public function getEnrolleePhoneAttribute()
+    {
+        $e = $this->enrollee;
+        return $e->phone_no ?? $e->phone ?? '';
+    }
+
+    public function getEnrolleeEmailAttribute()
+    {
+        return $this->enrollee->email ?? '';
+    }
+
+    public function getEnrolleeNinAttribute()
+    {
+        return $this->enrollee->nin ?? '';
+    }
+
+    public function getEnrolleePhotoAttribute()
+    {
+        return $this->enrollee->photo ?? null;
+    }
+
+    public function getEnrolleeDetailsAttribute()
+    {
+        return $this->enrollee;
+    }
+
+    public function getFullInfoAttribute()
+    {
+        $e = $this->enrollee;
+        if (!$e) return null;
+        return [
+            'id' => $this->id, 'file_number' => $this->file_number,
+            'enrollee_number' => $this->enrollee_number, 'enrollee_type' => $this->enrollee_type,
+            'fullname' => $e->fullname ?? $e->name ?? '', 'boschma_no' => $this->enrollee_number,
+            'nin' => $e->nin ?? '', 'gender' => $e->gender ?? '',
+            'date_of_birth' => $e->date_of_birth ?? $e->dob ?? '',
+            'phone_no' => $e->phone_no ?? $e->phone ?? '', 'email' => $e->email ?? '',
+        ];
+    }
+
     public function scopeSearch($query, $term)
     {
-        return $query->where('enrollee_number', 'LIKE', "%{$term}%")
-                    ->orWhere('file_number', 'LIKE', "%{$term}%");
+        return $query->where(function ($q) use ($term) {
+            $q->where('file_number', 'LIKE', "%{$term}%")
+              ->orWhere('enrollee_number', 'LIKE', "%{$term}%")
+              ->orWhereHas('beneficiary', fn($b) =>
+                  $b->where('fullname', 'LIKE', "%{$term}%")
+                    ->orWhere('phone_no', 'LIKE', "%{$term}%")
+                    ->orWhere('nin', 'LIKE', "%{$term}%")
+              )
+              ->orWhereHas('spouse', fn($s) =>
+                  $s->where('name', 'LIKE', "%{$term}%")
+                    ->orWhere('phone', 'LIKE', "%{$term}%")
+                    ->orWhere('nin', 'LIKE', "%{$term}%")
+              )
+              ->orWhereHas('child', fn($c) =>
+                  $c->where('name', 'LIKE', "%{$term}%")
+                    ->orWhere('nin', 'LIKE', "%{$term}%")
+              );
+        });
     }
 }
