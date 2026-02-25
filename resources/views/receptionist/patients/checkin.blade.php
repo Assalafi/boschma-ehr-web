@@ -34,7 +34,7 @@
                 <div class="text-center mb-4">
                     <div class="avatar avatar-xl bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 100px; height: 100px;">
                         @if($patient->photo)
-                            <img src="{{ asset('storage/' . $patient->photo) }}" alt="Patient" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="{{ 'http://eboschma.bornostate.gov.ng/storage/'$patient->photo) }}" alt="Patient" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">
                         @else
                             <span class="material-symbols-outlined text-muted" style="font-size: 48px;">person</span>
                         @endif

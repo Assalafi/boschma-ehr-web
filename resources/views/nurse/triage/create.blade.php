@@ -44,7 +44,7 @@
                 <div class="text-center">
                     <div class="wh-80 bg-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 overflow-hidden">
                         @if($encounter->patient->enrollee_photo ?? false)
-                            <img src="{{ asset('storage/' . $encounter->patient->enrollee_photo) }}" class="rounded-circle wh-80 object-fit-cover" alt="">
+                            <img src="{{ 'http://eboschma.bornostate.gov.ng/storage/'$encounter->patient->enrollee_photo) }}" class="rounded-circle wh-80 object-fit-cover" alt="">
                         @else
                             <span class="material-symbols-outlined text-primary" style="font-size: 2.5rem;">person</span>
                         @endif

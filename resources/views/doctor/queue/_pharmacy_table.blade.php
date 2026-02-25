@@ -23,7 +23,7 @@
           <div style="display:flex;align-items:center;gap:12px">
             <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:#e6f5ed">
               @if($encounter->patient->enrollee_photo ?? false)
-                <img src="{{ asset('storage/' . $encounter->patient->enrollee_photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
+                <img src="{{ 'http://eboschma.bornostate.gov.ng/storage/'$encounter->patient->enrollee_photo) }}" style="width:100%;height:100%;object-fit:cover" alt="">
               @else
                 <span class="material-symbols-outlined" style="font-size:18px;color:#016634">person</span>
               @endif
