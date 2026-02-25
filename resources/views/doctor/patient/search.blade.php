@@ -112,12 +112,4 @@
 .badge { border-radius: 20px; font-weight: 600; }
 </style>
 
-<script>
-// Auto-submit on typing pause
-let _t; 
-document.getElementById('searchInput').addEventListener('input', function() {
-    clearTimeout(_t);
-    if (this.value.length >= 2) _t = setTimeout(() => document.getElementById('searchForm').submit(), 600);
-});
-</script>
 @endsection
