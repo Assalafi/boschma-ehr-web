@@ -102,7 +102,7 @@
             @foreach($orders as $item)
             @php
                 $patient = $item->serviceOrder?->encounter?->patient;
-                $info    = $patient?->beneficiary;
+                $info    = $patient?->enrollee;
                 $name    = $info?->fullname ?? $info?->name ?? 'Unknown';
                 $file    = $patient?->file_number ?? '—';
                 $enc     = $item->serviceOrder?->encounter;

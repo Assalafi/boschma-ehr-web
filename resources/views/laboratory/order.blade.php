@@ -40,7 +40,7 @@
 </style>
 @php
 $patient=$item->serviceOrder?->encounter?->patient;
-$info=$patient?->beneficiary;
+$info=$patient?->enrollee;
 $name=$info?->fullname??$info?->name??'Unknown';
 $enc=$item->serviceOrder?->encounter;
 $sc=['pending'=>'amber','in_progress'=>'blue','completed'=>'green'];

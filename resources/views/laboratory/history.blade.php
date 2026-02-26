@@ -86,7 +86,7 @@
             @foreach($orders as $item)
             @php
                 $patient=$item->serviceOrder?->encounter?->patient;
-                $info=$patient?->beneficiary;
+                $info=$patient?->enrollee;
                 $name=$info?->fullname??$info?->name??'Unknown';
                 $res=$item->latestResult;
             @endphp
