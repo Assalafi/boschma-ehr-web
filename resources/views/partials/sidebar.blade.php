@@ -140,14 +140,14 @@
                         <a href="{{ route('pharmacy.queue') }}"
                             class="menu-link {{ Request::is('pharmacy/queue*') || Request::is('pharmacy/prescription*') ? 'active' : '' }}">
                             <span class="material-symbols-outlined menu-icon">queue</span>
-                            <span class="title">Dispensation Queue</span>
+                            <span class="title">Dispense Queue</span>
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="{{ route('pharmacy.history') }}"
                             class="menu-link {{ Request::is('pharmacy/history*') ? 'active' : '' }}">
                             <span class="material-symbols-outlined menu-icon">history</span>
-                            <span class="title">Dispensation History</span>
+                            <span class="title">Dispense History</span>
                         </a>
                     </li>
                 @endif

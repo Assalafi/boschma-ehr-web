@@ -48,10 +48,10 @@
                     </div>
                     <div class="flex-grow-1 ms-3">
                         <h5 class="mb-0">Prescription Report</h5>
-                        <small class="text-muted">Drug prescriptions and dispensations</small>
+                        <small class="text-muted">Drug prescriptions and dispenses</small>
                     </div>
                 </div>
-                <p class="text-muted small">Analyze prescription patterns, drug usage, and dispensation statistics.</p>
+                <p class="text-muted small">Analyze prescription patterns, drug usage, and dispense statistics.</p>
                 <a href="{{ route('admin.reports.prescriptions') }}" class="btn btn-outline-success w-100">
                     <span class="material-symbols-outlined me-1">analytics</span> Generate Report
                 </a>

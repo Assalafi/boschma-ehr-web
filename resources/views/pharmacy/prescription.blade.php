@@ -199,7 +199,7 @@
     {{-- Prescription card --}}
     <div class="pharm-card">
       <div class="pharm-card-header" style="color:#64748b">
-        <span class="material-symbols-outlined" style="font-size:16px">receipt_long</span> Prescription
+        <span class="material-symbols-outlined" style="font-size:16px">receipt_long</span> Prescribed By
       </div>
       <div class="pharm-card-body" style="padding-top:10px">
         <div class="pharm-info-row">
