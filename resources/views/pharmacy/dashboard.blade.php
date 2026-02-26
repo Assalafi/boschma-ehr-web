@@ -76,8 +76,8 @@
       </div>
       <div>
         <div class="stat-label">Today's Revenue</div>
-        <div class="stat-value" style="font-size:22px">GHS {{ number_format($todayRevenue ?? 0, 2) }}</div>
-        <span class="stat-link" style="color:#2563eb;cursor:default">From dispensations</span>
+        <div class="stat-value" style="font-size:22px">₦ {{ number_format($todayRevenue ?? 0, 2) }}</div>
+        <span class="stat-link" style="color:#2563eb;cursor:default">From dispenses</span>
       </div>
     </div>
   </div>
@@ -105,7 +105,7 @@
       <div class="action-icon" style="background:#fef3c7">
         <span class="material-symbols-outlined" style="color:#d97706">queue</span>
       </div>
-      <div class="action-label">Dispensation Queue</div>
+      <div class="action-label">Dispense Queue</div>
       <div class="action-desc">View & process pending prescriptions</div>
     </a>
   </div>
@@ -114,7 +114,7 @@
       <div class="action-icon" style="background:#dcfce7">
         <span class="material-symbols-outlined" style="color:#059669">history</span>
       </div>
-      <div class="action-label">Dispensation History</div>
+      <div class="action-label">Dispense History</div>
       <div class="action-desc">Browse completed dispensations</div>
     </a>
   </div>

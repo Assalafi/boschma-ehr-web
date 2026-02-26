@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Dispensation History')
+@section('title', 'Dispense History')
 @section('content')
 
 <style>
@@ -56,7 +56,7 @@
         <li class="breadcrumb-item active" style="color:#fff">History</li>
       </ol>
     </nav>
-    <h4 class="mb-0">Dispensation History</h4>
+    <h4 class="mb-0">Dispense History</h4>
   </div>
   <a href="{{ route('pharmacy.queue') }}" class="pharm-btn pharm-btn-outline" style="border-color:rgba(255,255,255,.3);color:#fff">
     <span class="material-symbols-outlined" style="font-size:15px">queue</span> Go to Queue
@@ -68,7 +68,7 @@
   <div class="pharm-card-header" style="justify-content:space-between;color:#1e293b;flex-wrap:wrap;gap:12px">
     <div class="d-flex align-items-center gap-2">
       <span class="material-symbols-outlined" style="font-size:16px;color:var(--pharm-primary)">history</span>
-      Completed Dispensations
+      Completed Dispenses
     </div>
     <form method="GET" action="{{ route('pharmacy.history') }}" class="pharm-search d-flex gap-2 align-items-center">
       <input type="date" name="date" value="{{ request('date') }}" style="min-width:160px">
@@ -139,7 +139,7 @@
             <td style="text-align:center"><span class="pharm-badge {{ $item->dispensations->sum('quantity_dispensed') > 0 ? 'pharm-badge-green' : 'pharm-badge-gray' }}">{{ $item->dispensations->sum('quantity_dispensed') }}</span></td>
             <td style="font-size:11px;color:#64748b">{{ $lastD?->dispensingOfficer?->name ?? '—' }}</td>
             <td style="font-size:11px;color:#64748b">{{ $lastD ? $lastD->dispensing_date_time->format('d M Y H:i') : '—' }}</td>
-            <td style="text-align:right;font-weight:600;color:#1e293b">GHS {{ number_format($item->dispensations->sum('cost_of_medication'), 2) }}</td>
+            <td style="text-align:right;font-weight:600;color:#1e293b">₦ {{ number_format($item->dispensations->sum('cost_of_medication'), 2) }}</td>
             <td style="text-align:center">
               @if($item->dispensing_status === \App\Models\PrescriptionItem::STATUS_DISPENSED)
                 <span class="pharm-badge pharm-badge-green">Dispensed</span>
@@ -155,7 +155,7 @@
         <tfoot>
           <tr>
             <td colspan="5" style="text-align:right;font-weight:600;color:#64748b">Total Cost</td>
-            <td style="text-align:right;font-weight:700;color:#1e293b;font-size:13px">GHS {{ number_format($totalCost, 2) }}</td>
+            <td style="text-align:right;font-weight:700;color:#1e293b;font-size:13px">₦ {{ number_format($totalCost, 2) }}</td>
             <td></td>
           </tr>
         </tfoot>
@@ -165,8 +165,8 @@
   @empty
   <div class="empty-state">
     <span class="material-symbols-outlined">history</span>
-    <h5>No dispensation history</h5>
-    <p>{{ request('date') ? 'No dispensations found for the selected date.' : 'Completed dispensations will appear here.' }}</p>
+    <h5>No dispense history</h5>
+    <p>{{ request('date') ? 'No dispenses found for the selected date.' : 'Completed dispenses will appear here.' }}</p>
     <a href="{{ route('pharmacy.queue') }}" class="pharm-btn pharm-btn-amber" style="margin-top:8px">
       <span class="material-symbols-outlined" style="font-size:14px">queue</span> Go to Queue
     </a>

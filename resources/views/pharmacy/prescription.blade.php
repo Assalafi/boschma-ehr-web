@@ -135,14 +135,14 @@
           <div style="margin:12px 0;height:1px;background:var(--pharm-border)"></div>
           <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:13px">
             <span style="color:#64748b">Total Medication Cost</span>
-            <span id="summaryTotal" style="font-weight:700;font-size:15px;color:#1e293b">GHS 0.00</span>
+            <span id="summaryTotal" style="font-weight:700;font-size:15px;color:#1e293b">₦ 0.00</span>
           </div>
           @if($isSecondaryFac)
           <div class="copay-bar mb-3">
             <span class="label">
               <span class="material-symbols-outlined" style="font-size:14px">payments</span> Copayment (10%)
             </span>
-            <span class="amount" id="summaryCopay">GHS 0.00</span>
+            <span class="amount" id="summaryCopay">₦ 0.00</span>
           </div>
           @endif
           <div class="mb-3">
@@ -359,7 +359,7 @@
                     — {{ $d->dispensing_date_time->format('d M H:i') }}
                     by {{ $d->dispensingOfficer?->name ?? 'Staff' }}
                     @if($d->payment_method) · {{ $d->payment_method }} @endif
-                    @if($d->copayment_amount > 0) · <span style="color:#92400e">Copay GHS {{ number_format($d->copayment_amount,2) }}</span> @endif
+                    @if($d->copayment_amount > 0) · <span style="color:#92400e">Copay ₦ {{ number_format($d->copayment_amount,2) }}</span> @endif
                     @if(!$loop->last) <span style="color:#e2e8f0;margin:0 4px">|</span> @endif
                   @endforeach
                 </small>
@@ -390,13 +390,13 @@
         <div style="height:1px;background:#e2e8f0;margin:12px 0"></div>
         <div class="d-flex justify-content-between align-items-center mb-2">
           <span style="color:#64748b;font-size:13px">Total Cost</span>
-          <span id="bulk-confirm-total" style="font-weight:700;font-size:16px;color:#1e293b">GHS 0.00</span>
+          <span id="bulk-confirm-total" style="font-weight:700;font-size:16px;color:#1e293b">₦ 0.00</span>
         </div>
         <div id="bulk-confirm-copay-row" class="copay-bar mb-2">
           <span class="label">
             <span class="material-symbols-outlined" style="font-size:14px">payments</span> Copayment (10%)
           </span>
-          <span class="amount" id="bulk-confirm-copay">GHS 0.00</span>
+          <span class="amount" id="bulk-confirm-copay">₦ 0.00</span>
         </div>
         <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:#f8fafc;font-size:13px">
           <span class="material-symbols-outlined" style="font-size:16px;color:#64748b">credit_card</span>
@@ -523,7 +523,7 @@ function updateSummary() {
             total += cost;
             return `<div class="summary-item">
                 <span style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${i.drug}">${i.drug}</span>
-                <span style="color:#64748b;white-space:nowrap">&times;${i.qty} &nbsp; <strong style="color:#1e293b">GHS ${cost.toFixed(2)}</strong></span>
+                <span style="color:#64748b;white-space:nowrap">&times;${i.qty} &nbsp; <strong style="color:#1e293b">₦ ${cost.toFixed(2)}</strong></span>
             </div>`;
         }).join('');
     }
@@ -531,8 +531,8 @@ function updateSummary() {
     const copay = _isSecondary ? total * 0.10 : 0;
     const totalEl = document.getElementById('summaryTotal');
     const copayEl = document.getElementById('summaryCopay');
-    if (totalEl) totalEl.textContent = 'GHS ' + total.toFixed(2);
-    if (copayEl) copayEl.textContent = 'GHS ' + copay.toFixed(2);
+    if (totalEl) totalEl.textContent = '₦ ' + total.toFixed(2);
+    if (copayEl) copayEl.textContent = '₦ ' + copay.toFixed(2);
 }
 
 /* ── Bulk dispense ──────────────────────────────────── */
@@ -563,19 +563,19 @@ function openBulkConfirm() {
                 <span style="font-weight:600;color:#1e293b">${i.drug}</span>
                 <span style="color:#94a3b8;margin-left:6px">&times;${i.qty}</span>
             </div>
-            <strong style="color:#1e293b">GHS ${cost.toFixed(2)}</strong>
+            <strong style="color:#1e293b">₦ ${cost.toFixed(2)}</strong>
         </div>`;
     }).join('');
 
     document.getElementById('bulk-confirm-list').innerHTML    = rows;
-    document.getElementById('bulk-confirm-total').textContent = 'GHS ' + total.toFixed(2);
+    document.getElementById('bulk-confirm-total').textContent = '₦ ' + total.toFixed(2);
     document.getElementById('bulk-confirm-method').textContent= method;
 
     const copayRow = document.getElementById('bulk-confirm-copay-row');
     if (copayRow) {
         if (_isSecondary) {
             copayRow.style.display = '';
-            document.getElementById('bulk-confirm-copay').textContent = 'GHS ' + (total * 0.10).toFixed(2);
+            document.getElementById('bulk-confirm-copay').textContent = '₦ ' + (total * 0.10).toFixed(2);
         } else {
             copayRow.style.display = 'none';
         }

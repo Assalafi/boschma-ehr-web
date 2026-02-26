@@ -158,17 +158,17 @@
 
       <div class="pharm-card">
         <div class="pharm-card-header" style="color:#64748b">
-          <span class="material-symbols-outlined" style="font-size:16px">edit_note</span> Dispensation Notes
+          <span class="material-symbols-outlined" style="font-size:16px">edit_note</span> Dispense Notes
         </div>
         <div class="pharm-card-body">
-          <textarea name="dispensation_notes" class="form-control" rows="2" placeholder="Any notes about the dispensation…"
+          <textarea name="dispensation_notes" class="form-control" rows="2" placeholder="Any notes about the dispense…"
             style="border-radius:8px;border:1.5px solid var(--pharm-border);font-size:13px;resize:vertical"></textarea>
         </div>
       </div>
 
       <div class="d-flex gap-2 mb-4">
         <button type="submit" class="pharm-btn pharm-btn-success">
-          <span class="material-symbols-outlined" style="font-size:16px">check_circle</span> Complete Dispensation
+          <span class="material-symbols-outlined" style="font-size:16px">check_circle</span> Complete Dispense
         </button>
         <a href="{{ route('dispensation.index') }}" class="pharm-btn pharm-btn-outline">
           <span class="material-symbols-outlined" style="font-size:15px">arrow_back</span> Back to Queue

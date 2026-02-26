@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Dispensation Queue')
+@section('title', 'Dispense Queue')
 @section('content')
 
 <style>
@@ -45,10 +45,10 @@
     <nav style="--bs-breadcrumb-divider: '/'" class="mb-2">
       <ol class="breadcrumb mb-0" style="font-size:12px">
         <li class="breadcrumb-item"><a href="{{ route('pharmacy.dashboard') }}" style="color:rgba(255,255,255,.7)">Pharmacy</a></li>
-        <li class="breadcrumb-item active" style="color:#fff">Dispensation</li>
+        <li class="breadcrumb-item active" style="color:#fff">Dispense</li>
       </ol>
     </nav>
-    <h4 class="mb-0">Dispensation Queue</h4>
+    <h4 class="mb-0">Dispense Queue</h4>
   </div>
   <a href="{{ route('pharmacy.dashboard') }}" class="pharm-btn pharm-btn-outline" style="border-color:rgba(255,255,255,.3);color:#fff">
     <span class="material-symbols-outlined" style="font-size:15px">arrow_back</span> Dashboard
@@ -90,7 +90,7 @@
 <div class="pharm-card">
   <div class="pharm-card-header">
     <span class="material-symbols-outlined" style="font-size:16px;color:var(--pharm-primary)">queue</span>
-    Prescriptions Awaiting Dispensation
+    Prescriptions Awaiting Dispense
   </div>
   <div style="overflow-x:auto">
     <table class="pharm-table">
