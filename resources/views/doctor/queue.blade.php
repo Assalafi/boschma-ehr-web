@@ -28,6 +28,22 @@
 .queue-tab:hover { color: var(--doc-primary); }
 .queue-tab.active { color: var(--doc-primary); font-weight: 700; border-bottom-color: var(--doc-primary); }
 .queue-tab .tab-count { padding: 1px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+.tab-toolbar { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid #f1f5f9; flex-wrap:wrap; background:#fafcfb; }
+.tab-search-wrap { position:relative; flex:1; min-width:200px; max-width:360px; }
+.tab-search-wrap .material-symbols-outlined { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:18px; color:#94a3b8; pointer-events:none; }
+.tab-search-input { width:100%; padding:7px 12px 7px 34px; border:1.5px solid var(--doc-border); border-radius:8px; font-size:13px; transition:border-color .15s; background:#fff; }
+.tab-search-input:focus { border-color:var(--doc-primary); outline:none; box-shadow:0 0 0 3px rgba(1,102,52,.1); }
+.tab-search-input::placeholder { color:#b0b8c4; }
+.tab-per-page { padding:5px 8px; border:1.5px solid var(--doc-border); border-radius:6px; font-size:12px; color:#475569; cursor:pointer; background:#fff; }
+.tab-per-page:focus { border-color:var(--doc-primary); outline:none; }
+.tab-info { font-size:12px; color:#64748b; white-space:nowrap; }
+.tab-pagination { display:flex; align-items:center; justify-content:center; gap:4px; padding:12px 20px; border-top:1px solid #f1f5f9; }
+.tab-page-btn { display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 8px; border:1.5px solid var(--doc-border); border-radius:6px; font-size:12px; font-weight:600; color:#475569; background:#fff; cursor:pointer; transition:all .15s; }
+.tab-page-btn:hover { border-color:#cbd5e1; background:#f8fafc; }
+.tab-page-btn.active { background:var(--doc-primary); border-color:var(--doc-primary); color:#fff; }
+.tab-page-btn:disabled { opacity:.4; cursor:not-allowed; pointer-events:none; }
+.tab-no-match { text-align:center; padding:32px 20px; color:#94a3b8; font-size:13px; display:none; }
+.tab-no-match .material-symbols-outlined { font-size:40px; opacity:.5; display:block; margin:0 auto 8px; }
 </style>
 
 <div class="doc-page">
@@ -97,13 +113,34 @@
     </button>
   </div>
   <div class="tab-content">
-    <div class="tab-pane fade show active" id="triaged">@include('doctor.queue._triaged_table', ['encounters' => $triaged])</div>
-    <div class="tab-pane fade" id="inConsultation">@include('doctor.queue._consultation_table', ['encounters' => $inConsultation])</div>
-    <div class="tab-pane fade" id="awaitingLab">@include('doctor.queue._lab_table', ['encounters' => $awaitingLab])</div>
-    <div class="tab-pane fade" id="awaitingPharmacy">@include('doctor.queue._pharmacy_table', ['encounters' => $awaitingPharmacy])</div>
-    <div class="tab-pane fade" id="completedToday">@include('doctor.queue._completed_table', ['encounters' => $completedToday])</div>
+    @foreach([
+      ['id'=>'triaged','cls'=>'show active','ph'=>'Search patient name or ID...','partial'=>'_triaged_table','var'=>$triaged],
+      ['id'=>'inConsultation','cls'=>'','ph'=>'Search patient, ID, or doctor...','partial'=>'_consultation_table','var'=>$inConsultation],
+      ['id'=>'awaitingLab','cls'=>'','ph'=>'Search patient, ID, or order...','partial'=>'_lab_table','var'=>$awaitingLab],
+      ['id'=>'awaitingPharmacy','cls'=>'','ph'=>'Search patient, ID, or drug...','partial'=>'_pharmacy_table','var'=>$awaitingPharmacy],
+      ['id'=>'completedToday','cls'=>'','ph'=>'Search patient, ID, or outcome...','partial'=>'_completed_table','var'=>$completedToday],
+    ] as $t)
+    <div class="tab-pane fade {{ $t['cls'] }}" id="{{ $t['id'] }}">
+      <div class="tab-toolbar">
+        <div class="tab-search-wrap">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" class="tab-search-input" data-tab="{{ $t['id'] }}" placeholder="{{ $t['ph'] }}">
+        </div>
+        <div class="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
+          <span class="tab-info" data-tab="{{ $t['id'] }}"></span>
+          <select class="tab-per-page" data-tab="{{ $t['id'] }}">
+            <option value="15" selected>15 / page</option><option value="25">25</option><option value="50">50</option><option value="0">All</option>
+          </select>
+        </div>
+      </div>
+      @include('doctor.queue.'.$t['partial'], ['encounters'=>$t['var']])
+      <div class="tab-no-match" data-tab="{{ $t['id'] }}"><span class="material-symbols-outlined">search_off</span>No matching patients</div>
+      <div class="tab-pagination" data-tab="{{ $t['id'] }}"></div>
+    </div>
+    @endforeach
   </div>
 </div>
 
 </div>
+<script src="{{ asset('js/queue-tabs.js') }}"></script>
 @endsection
