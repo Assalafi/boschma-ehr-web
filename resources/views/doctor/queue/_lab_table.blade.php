@@ -82,7 +82,7 @@
               <span class="material-symbols-outlined" style="font-size:14px">science</span> Results
             </a>
             @endif
-            <a href="{{ route('doctor.consultation.start', $encounter) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:transparent;border:1.5px solid #e2e8f0;color:#64748b;text-decoration:none">
+            <a href="{{ route($hasResults ? 'doctor.consultation.start.step' : 'doctor.consultation.start', [$encounter, $hasResults ? 3 : null]) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:transparent;border:1.5px solid #e2e8f0;color:#64748b;text-decoration:none">
               <span class="material-symbols-outlined" style="font-size:14px">{{ $hasResults ? 'play_arrow' : 'visibility' }}</span> {{ $hasResults ? 'Continue' : 'View' }}
             </a>
           </div>
