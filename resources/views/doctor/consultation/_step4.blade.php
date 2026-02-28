@@ -168,11 +168,13 @@ function _renderDrugResults(drugs) {
         const alreadyAdded = _selectedDrugs.has(d.id);
         const details = [d.dosage_form, d.strength, d.unit].filter(Boolean).join(' · ');
         const price   = d.unit_price > 0 ? `₦${d.unit_price.toFixed(2)}/unit` : '';
+        const isOutOfStock = d.stock_status === 'out';
+        const isDisabled = alreadyAdded || isOutOfStock;
         return `<div class="d-flex align-items-start justify-content-between gap-3 px-4 py-3 border-bottom drug-result-row"
-                    style="cursor:${alreadyAdded ? 'default' : 'pointer'};background:${alreadyAdded ? '#f8fffe' : '#fff'};transition:background-color 0.2s"
-                    onmouseover="this.style.backgroundColor='${alreadyAdded ? '#f0f9f6' : '#f8fffe'}'"
-                    onmouseout="this.style.backgroundColor='${alreadyAdded ? '#f8fffe' : '#fff'}'"
-                    ${alreadyAdded ? '' : `onclick="_addDrug(${JSON.stringify(d).replace(/"/g,'&quot;')})"`}>
+                    style="cursor:${isDisabled ? 'default' : 'pointer'};background:${alreadyAdded ? '#f8fffe' : (isOutOfStock ? '#f8f9fa' : '#fff')};transition:background-color 0.2s;opacity:${isOutOfStock ? '0.7' : '1'}"
+                    onmouseover="this.style.backgroundColor='${isDisabled ? (alreadyAdded ? '#f0f9f6' : '#f8f9fa') : '#f8fffe'}'"
+                    onmouseout="this.style.backgroundColor='${alreadyAdded ? '#f8fffe' : (isOutOfStock ? '#f8f9fa' : '#fff')}'"
+                    ${isDisabled ? '' : `onclick="_addDrug(${JSON.stringify(d).replace(/"/g,'&quot;')})"`}>
             <div style="min-width:0;flex:1">
                 <div class="fw-semibold" style="font-size:14px;color:#0a3d35;line-height:1.3">${d.name}</div>
                 <div class="text-muted" style="font-size:12px;line-height:1.4">${details}${price ? ' · <span style=\'color:#016634\'>' + price + '</span>' : ''}</div>
@@ -181,11 +183,16 @@ function _renderDrugResults(drugs) {
                 ${_stockBadge(d.stock_status, d.stock)}
                 ${alreadyAdded
                     ? `<span class="badge bg-secondary" style="font-size:11px">Added</span>`
-                    : `<button type="button" class="btn btn-sm px-3 py-2 rounded-pill"
-                          style="background:#e8f0ee;color:#016634;font-size:12px;border:none"
-                          onclick="event.stopPropagation();_addDrug(${JSON.stringify(d).replace(/"/g,'&quot;')})">
-                          <span class="material-symbols-outlined align-middle" style="font-size:14px">add</span> Add
-                       </button>`
+                    : isOutOfStock
+                        ? `<button type="button" class="btn btn-sm px-3 py-2 rounded-pill" disabled
+                              style="background:#e9ecef;color:#6c757d;font-size:12px;border:none;cursor:not-allowed">
+                              <span class="material-symbols-outlined align-middle" style="font-size:14px">block</span> Out of Stock
+                           </button>`
+                        : `<button type="button" class="btn btn-sm px-3 py-2 rounded-pill"
+                              style="background:#e8f0ee;color:#016634;font-size:12px;border:none"
+                              onclick="event.stopPropagation();_addDrug(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+                              <span class="material-symbols-outlined align-middle" style="font-size:14px">add</span> Add
+                           </button>`
                 }
             </div>
         </div>`;
@@ -195,6 +202,13 @@ function _renderDrugResults(drugs) {
 
 function _addDrug(drug) {
     if (_selectedDrugs.has(drug.id)) return;
+    
+    // Prevent adding out-of-stock drugs
+    if (drug.stock_status === 'out') {
+        _showToast('danger', 'Cannot add out-of-stock medication: ' + drug.name);
+        return;
+    }
+    
     drug.dosage       = '';
     drug.frequency    = 3;
     drug.duration     = 5;
