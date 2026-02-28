@@ -671,6 +671,8 @@ class DoctorController extends Controller
 
         // Check for pending lab or pharmacy orders before allowing discharge
         if ($request->outcome === 'Treated') {
+            \Log::info('Checking pending orders for discharge - Encounter ID: ' . $encounter->id);
+            
             $pendingLabOrders = ServiceOrder::where('encounter_id', $encounter->id)
                 ->where('status', 'pending')
                 ->exists();
@@ -680,6 +682,9 @@ class DoctorController extends Controller
                 })
                 ->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL])
                 ->exists();
+
+            \Log::info('Pending lab orders: ' . ($pendingLabOrders ? 'YES' : 'NO'));
+            \Log::info('Pending pharmacy orders: ' . ($pendingPharmacyOrders ? 'YES' : 'NO'));
 
             if ($pendingLabOrders || $pendingPharmacyOrders) {
                 $messages = [];
@@ -691,8 +696,11 @@ class DoctorController extends Controller
                 }
 
                 $message = 'Cannot discharge patient with ' . implode(' and ', $messages) . '. Please complete or cancel these orders first.';
+                \Log::info('Discharge blocked: ' . $message);
                 return response()->json(['error' => $message], 422);
             }
+            
+            \Log::info('Discharge allowed - no pending orders found');
         }
 
         DB::beginTransaction();

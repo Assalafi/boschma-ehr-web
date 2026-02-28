@@ -453,10 +453,8 @@ async function confirmReferrals() {
         _showInvAlert('success', data.message || 'Referrals saved successfully.');
         _loadInvStatus();
         
-        // Redirect to patient queue after successful referral save
-        setTimeout(() => {
-            window.location.href = '{{ route("doctor.queue") }}';
-        }, 1500);
+        // Show choice dialog after referrals are saved
+        _showChoiceDialog('Services sent to lab successfully. What would you like to do next?', 'lab');
     } catch(e) {
         alert('Error: ' + (e.message || 'Failed to save referrals'));
     }
