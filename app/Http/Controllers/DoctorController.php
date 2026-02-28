@@ -202,9 +202,14 @@ class DoctorController extends Controller
     {
         $encounter->load(['patient', 'vitalSigns.takenBy', 'program', 'consultations.diagnoses', 'consultations.procedures', 'consultations.prescriptions.items.drug']);
         
-        // Allow editing if consultation is still in-progress, draft, or active; only redirect when completed
+        // Allow editing if consultation is still in-progress, active, draft, or pending; only redirect when completed
         $existingConsultation = $encounter->consultations->first();
-        if ($existingConsultation && !in_array($existingConsultation->status, [ClinicalConsultation::STATUS_IN_PROGRESS, 'draft', 'active'])) {
+        if ($existingConsultation && !in_array($existingConsultation->status, [
+            ClinicalConsultation::STATUS_IN_PROGRESS, 
+            ClinicalConsultation::STATUS_ACTIVE, 
+            ClinicalConsultation::STATUS_DRAFT, 
+            ClinicalConsultation::STATUS_PENDING
+        ])) {
             return redirect()->route('doctor.consultation.show', $existingConsultation)
                 ->with('info', 'Consultation already completed for this encounter.');
         }

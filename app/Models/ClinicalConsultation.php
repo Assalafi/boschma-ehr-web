@@ -32,6 +32,8 @@ class ClinicalConsultation extends Model
     const STATUS_IN_PROGRESS = 'In Progress';
     const STATUS_COMPLETED = 'Completed';
     const STATUS_PENDING = 'Pending';
+    const STATUS_ACTIVE = 'active';
+    const STATUS_DRAFT = 'draft';
 
     public function encounter()
     {
