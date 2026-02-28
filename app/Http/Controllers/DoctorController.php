@@ -165,9 +165,7 @@ class DoctorController extends Controller
         $search = trim($request->get('search', ''));
         $query = Encounter::with(['patient', 'vitalSigns', 'program', 'consultations'])->where('facility_id', $facilityId);
         if ($search) {
-            $query->whereHas('patient', function ($q) use ($search) {
-                $q->where('enrollee_name', 'LIKE', "%{$search}%")->orWhere('enrollee_number', 'LIKE', "%{$search}%");
-            });
+            $query->whereHas('patient', fn($q) => $q->search($search));
         }
         switch ($tab) {
             case 'triaged':
