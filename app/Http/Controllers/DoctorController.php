@@ -521,7 +521,11 @@ class DoctorController extends Controller
             }
 
             DB::commit();
-            return response()->json(['success' => true, 'message' => 'Prescription sent to pharmacy successfully.']);
+            return response()->json([
+                'success'     => true, 
+                'message'     => 'Prescription sent to pharmacy successfully. What would you like to do next?',
+                'show_choice' => true
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Failed to send to pharmacy: ' . $e->getMessage()], 500);
@@ -664,6 +668,32 @@ class DoctorController extends Controller
         }
 
         $request->validate($rules);
+
+        // Check for pending lab or pharmacy orders before allowing discharge
+        if ($request->outcome === 'Treated') {
+            $pendingLabOrders = ServiceOrder::where('encounter_id', $encounter->id)
+                ->where('status', 'pending')
+                ->exists();
+
+            $pendingPharmacyOrders = Prescription::whereHas('clinicalConsultation', function($q) use ($encounter) {
+                    $q->where('encounter_id', $encounter->id);
+                })
+                ->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL])
+                ->exists();
+
+            if ($pendingLabOrders || $pendingPharmacyOrders) {
+                $messages = [];
+                if ($pendingLabOrders) {
+                    $messages[] = 'pending laboratory orders';
+                }
+                if ($pendingPharmacyOrders) {
+                    $messages[] = 'pending pharmacy prescriptions';
+                }
+
+                $message = 'Cannot discharge patient with ' . implode(' and ', $messages) . '. Please complete or cancel these orders first.';
+                return response()->json(['error' => $message], 422);
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -1659,6 +1689,8 @@ class DoctorController extends Controller
             'success'        => true,
             'order_created'  => $orderSummary,
             'needs_referral' => $needsReferral,
+            'show_choice'    => true,
+            'message'        => 'Services sent to lab successfully. What would you like to do next?',
         ]);
     }
 

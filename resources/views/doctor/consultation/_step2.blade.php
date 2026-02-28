@@ -312,10 +312,15 @@ async function sendToLab() {
             _showInvAlert('success', msg);
             _loadInvStatus();
             
-            // Redirect to patient queue after successful send
-            setTimeout(() => {
-                window.location.href = '{{ route("doctor.queue") }}';
-            }, 1500);
+            // Show choice dialog if requested
+            if (data.show_choice) {
+                _showChoiceDialog(data.message, 'lab');
+            } else {
+                // Redirect to patient queue after successful send
+                setTimeout(() => {
+                    window.location.href = '{{ route("doctor.queue") }}';
+                }, 1500);
+            }
         }
     } catch (e) {
         _showInvAlert('danger', e.message || 'Failed to send services to lab.');
@@ -323,6 +328,62 @@ async function sendToLab() {
         btn.disabled = false;
         btn.innerHTML = '<span class="material-symbols-outlined align-middle me-1" style="font-size:16px">send</span> Send to Lab';
     }
+}
+
+function _showChoiceDialog(message, type) {
+    const modalHtml = `
+        <div class="modal fade" id="choiceModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title">Order Sent Successfully</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>${message}</p>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-success" onclick="handleChoice('continue')">
+                                <span class="material-symbols-outlined align-middle me-1">edit_note</span>
+                                Continue Consultation
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="handleChoice('queue')">
+                                <span class="material-symbols-outlined align-middle me-1">queue</span>
+                                Go to Patient Queue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal if present
+    const existingModal = document.getElementById('choiceModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add new modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('choiceModal'));
+    modal.show();
+    
+    // Clean up when modal is hidden
+    document.getElementById('choiceModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function handleChoice(choice) {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('choiceModal'));
+    modal.hide();
+    
+    if (choice === 'queue') {
+        window.location.href = '{{ route("doctor.queue") }}';
+    }
+    // If 'continue', just close the modal and stay on consultation page
 }
 
 function _buildReferralModal(needsReferral, orderCreated) {
