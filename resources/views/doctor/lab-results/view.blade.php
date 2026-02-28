@@ -52,7 +52,7 @@
     <h4 class="mb-0">Lab Results</h4>
   </div>
   <div class="d-flex gap-2">
-    <a href="{{ route('doctor.consultation.start', $order->encounter) }}" class="doc-btn doc-btn-success">
+    <a href="{{ route('doctor.consultation.start.step', [$order->encounter, 3]) }}" class="doc-btn doc-btn-success">
       <span class="material-symbols-outlined" style="font-size:15px">play_arrow</span> Continue Consultation
     </a>
     <a href="{{ route('doctor.queue') }}#lab-tab" class="doc-btn doc-btn-outline" style="border-color:rgba(255,255,255,.3);color:#fff">

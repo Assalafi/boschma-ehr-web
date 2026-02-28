@@ -198,7 +198,7 @@ class DoctorController extends Controller
     /**
      * Start Consultation - View patient details and start consultation
      */
-    public function startConsultation(Request $request, Encounter $encounter)
+    public function startConsultation(Request $request, Encounter $encounter, $step = null)
     {
         $encounter->load(['patient', 'vitalSigns.takenBy', 'program', 'consultations.diagnoses', 'consultations.procedures', 'consultations.prescriptions.items.drug']);
         
@@ -302,7 +302,7 @@ class DoctorController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('doctor.consultation.create', compact('encounter', 'patientHistory', 'icdCodes', 'drugs', 'savedData', 'serviceCategories', 'orderedServiceNames', 'facilities', 'wards'));
+        return view('doctor.consultation.create', compact('encounter', 'patientHistory', 'icdCodes', 'drugs', 'savedData', 'serviceCategories', 'orderedServiceNames', 'facilities', 'wards', 'step'));
     }
 
 

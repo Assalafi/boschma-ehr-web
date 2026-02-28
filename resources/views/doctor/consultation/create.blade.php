@@ -157,7 +157,7 @@ if (!document.getElementById('_toastStyle')) {
 }
 
 // ── Step Navigation ─────────────────────────────────────────────
-let currentStep = 1;
+let currentStep = {{ $step ?? 1 }};
 const totalSteps = 5;
 
 function goStep(n) {
@@ -306,7 +306,7 @@ function removeDrug(i) {
 
 // ── Init ────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-    goStep(1);
+    goStep(currentStep);
     renderDrugs();
 });
 </script>

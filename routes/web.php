@@ -110,6 +110,7 @@ Route::middleware(['auth'])->group(function () {
         
         // Consultation workflow
         Route::get('/consultation/{encounter}/start', [DoctorController::class, 'startConsultation'])->name('consultation.start');
+        Route::get('/consultation/{encounter}/start/step/{step}', [DoctorController::class, 'startConsultation'])->name('consultation.start.step');
         Route::get('/consultation/drugs/search', [DoctorController::class, 'drugSearch'])->name('consultation.drugs.search');
                 Route::post('/consultation/{encounter}/update-clinical-assessment', [DoctorController::class, 'updateClinicalAssessment'])->name('consultation.update-clinical-assessment');
         Route::post('/consultation/{encounter}/update-confirmed-diagnosis', [DoctorController::class, 'updateConfirmedDiagnosis'])->name('consultation.update-confirmed-diagnosis');
