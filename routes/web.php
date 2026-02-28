@@ -106,6 +106,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [DoctorController::class, 'index'])->name('index');
         Route::get('/dashboard', [DoctorController::class, 'dashboard'])->name('dashboard');
         Route::get('/queue', [DoctorController::class, 'queue'])->name('queue');
+        Route::get('/queue/tab', [DoctorController::class, 'queueTab'])->name('queue.tab');
         Route::get('/reports', [DoctorController::class, 'reports'])->name('reports');
         
         // Consultation workflow

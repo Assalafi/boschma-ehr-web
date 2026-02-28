@@ -136,63 +136,81 @@ class DoctorController extends Controller
         $user       = Auth::user();
         $facilityId = $user->facility_id;
 
-        $base = Encounter::with(['patient', 'vitalSigns', 'program', 'consultations'])
-            ->where('facility_id', $facilityId);
+        $base = Encounter::where('facility_id', $facilityId);
 
-        // 1. Awaiting Consultation — triaged, no consultation started
-        $triagedQ = clone $base;
-        if ($request->filled('priority')) {
-            $triagedQ->whereHas('vitalSigns', fn($q) => $q->where('overall_priority', $request->priority));
-        }
-        $triaged = $triagedQ
-            ->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])
-            ->whereDoesntHave('consultations')
-            ->whereHas('vitalSigns')
-            ->get()
-            ->sortBy(fn($e) => match(strtolower($e->vitalSigns->first()?->overall_priority ?? 'Green')) {
-                'red', 'critical', 'high' => 1, 
-                'yellow', 'urgent' => 2, 
-                'green', 'normal' => 3, 
-                default => 4
+        $counts = [
+            'triaged'          => (clone $base)->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->whereDoesntHave('consultations')->whereHas('vitalSigns')->count(),
+            'inConsultation'   => (clone $base)->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->count(),
+            'awaitingLab'      => (clone $base)->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'))->count(),
+            'awaitingPharmacy' => (clone $base)->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]))->count(),
+            'completedToday'   => (clone $base)->whereHas('consultations', fn($q) => $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', today()))->count(),
+        ];
+
+        $programs = \App\Models\Program::orderBy('name')->pluck('name', 'id');
+        $doctors  = \App\Models\User::where('facility_id', $facilityId)
+            ->whereHas('roles', fn($q) => $q->where('name', 'Doctor'))
+            ->orderBy('name')->pluck('name', 'id');
+
+        return view('doctor.queue', compact('counts', 'programs', 'doctors'));
+    }
+    /**
+     * AJAX - returns paginated, filtered HTML for one queue tab.
+     */
+    public function queueTab(Request $request)
+    {
+        $user = Auth::user();
+        $facilityId = $user->facility_id;
+        $tab = $request->get('tab', 'triaged');
+        $perPage = min(max((int) $request->get('per_page', 15), 1), 100);
+        $search = trim($request->get('search', ''));
+        $query = Encounter::with(['patient', 'vitalSigns', 'program', 'consultations'])->where('facility_id', $facilityId);
+        if ($search) {
+            $query->whereHas('patient', function ($q) use ($search) {
+                $q->where('enrollee_name', 'LIKE', "%{$search}%")->orWhere('enrollee_number', 'LIKE', "%{$search}%");
             });
-
-        // 2. In Consultation — has an active (in-progress) consultation
-        $inConsultation = (clone $base)
-            ->whereHas('consultations', fn($q) => $q->where('status', ClinicalConsultation::STATUS_IN_PROGRESS))
-            ->orderByDesc('updated_at')
-            ->get();
-
-        // 3. Awaiting Lab — has at least one pending service_order for this facility
-        $awaitingLab = (clone $base)
-            ->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'))
-            ->orderByDesc('updated_at')
-            ->get();
-
-        // 4. Awaiting Pharmacy — has at least one pending or partially-dispensed prescription
-        $awaitingPharmacy = (clone $base)
-            ->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [
-                Prescription::STATUS_PENDING,
-                Prescription::STATUS_PARTIAL,
-            ]))
-            ->orderByDesc('updated_at')
-            ->get();
-
-        // 5. Completed Today — consultation completed today
-        $completedToday = (clone $base)
-            ->whereHas('consultations', fn($q) => $q
-                ->where('status', ClinicalConsultation::STATUS_COMPLETED)
-                ->whereDate('updated_at', today())
-            )
-            ->orderByDesc('updated_at')
-            ->get();
-
-        return view('doctor.queue', compact(
-            'triaged',
-            'inConsultation',
-            'awaitingLab',
-            'awaitingPharmacy',
-            'completedToday'
-        ));
+        }
+        switch ($tab) {
+            case 'triaged':
+                $query->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->whereDoesntHave('consultations')->whereHas('vitalSigns');
+                if ($request->filled('priority')) $query->whereHas('vitalSigns', fn($q) => $q->where('overall_priority', $request->priority));
+                if ($request->filled('program')) $query->where('program_id', $request->program);
+                $query->orderByRaw("(SELECT CASE WHEN LOWER(overall_priority) IN ('red','critical','high') THEN 1 WHEN LOWER(overall_priority) IN ('yellow','urgent','orange') THEN 2 ELSE 3 END FROM vital_signs WHERE encounter_id = encounters.id ORDER BY created_at DESC LIMIT 1)")->orderBy('created_at');
+                $partial = 'doctor.queue._triaged_table'; break;
+            case 'inConsultation':
+                $query->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]));
+                if ($request->filled('program')) $query->where('program_id', $request->program);
+                $query->orderByDesc('updated_at');
+                $partial = 'doctor.queue._consultation_table'; break;
+            case 'awaitingLab':
+                $query->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'));
+                if ($request->filled('program')) $query->where('program_id', $request->program);
+                $query->orderByDesc('updated_at');
+                $partial = 'doctor.queue._lab_table'; break;
+            case 'awaitingPharmacy':
+                $query->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]));
+                if ($request->filled('program')) $query->where('program_id', $request->program);
+                $query->orderByDesc('updated_at');
+                $partial = 'doctor.queue._pharmacy_table'; break;
+            case 'completedToday':
+                $dateFrom = $request->get('date_from', today()->format('Y-m-d'));
+                $dateTo = $request->get('date_to', today()->format('Y-m-d'));
+                $query->whereHas('consultations', function ($q) use ($dateFrom, $dateTo) {
+                    $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', '>=', $dateFrom)->whereDate('updated_at', '<=', $dateTo);
+                });
+                if ($request->filled('doctor')) $query->whereHas('consultations', fn($q) => $q->where('doctor_id', $request->doctor));
+                if ($request->filled('program')) $query->where('program_id', $request->program);
+                $query->orderByDesc('updated_at');
+                $partial = 'doctor.queue._completed_table'; break;
+            default:
+                return response()->json(['error' => 'Invalid tab'], 400);
+        }
+        $encounters = $query->paginate($perPage);
+        return response()->json([
+            'html'  => view($partial, compact('encounters'))->render(),
+            'count' => $encounters->total(),
+            'pages' => $encounters->lastPage(),
+            'page'  => $encounters->currentPage(),
+        ]);
     }
 
     /**
