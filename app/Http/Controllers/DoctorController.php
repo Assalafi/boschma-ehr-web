@@ -677,7 +677,7 @@ class DoctorController extends Controller
                 ->where('status', 'pending')
                 ->exists();
 
-            $pendingPharmacyOrders = Prescription::whereHas('clinicalConsultation', function($q) use ($encounter) {
+            $pendingPharmacyOrders = Prescription::whereHas('consultation', function($q) use ($encounter) {
                     $q->where('encounter_id', $encounter->id);
                 })
                 ->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL])
