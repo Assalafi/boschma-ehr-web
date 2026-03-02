@@ -153,17 +153,18 @@ class PharmacyController extends Controller
                 $alreadyDispensed = $item->dispensations->sum('quantity_dispensed');
                 $prescribedQty = $item->quantity;
                 
-                // For update action, quantity is the NEW total to dispense
+                // For update action, quantity is the NEW prescribed quantity
                 if ($request->action === 'update') {
                     if (!$request->quantity) {
                         return response()->json(['error' => 'Quantity is required for update.'], 422);
                     }
-                    $quantityToDispense = $request->quantity;
+                    $newPrescribedQty = $request->quantity;
                     
-                    // Allow over-dispensing - no validation against prescribed quantity
+                    // Update the prescribed quantity to the new amount
+                    $item->update(['quantity' => $newPrescribedQty]);
                     
-                    // Calculate difference (what we need to add or return)
-                    $difference = $quantityToDispense - $alreadyDispensed;
+                    // Calculate difference between new prescribed and already dispensed
+                    $difference = $newPrescribedQty - $alreadyDispensed;
                     
                     if ($difference > 0) {
                         // Need to dispense more
@@ -193,7 +194,7 @@ class PharmacyController extends Controller
                                 'encounter_id' => $encounter->id,
                                 'user_id' => Auth::id(),
                                 'action_type' => 'Pharmacy',
-                                'description' => "Updated dispensing for {$drug->name}: additional {$difference} unit(s). Total now: {$quantityToDispense}",
+                                'description' => "Updated dispensing for {$drug->name}: additional {$difference} unit(s). New prescribed quantity: {$newPrescribedQty}",
                                 'action_time' => now(),
                             ]);
                         }
@@ -218,17 +219,17 @@ class PharmacyController extends Controller
                                 'encounter_id' => $encounter->id,
                                 'user_id' => Auth::id(),
                                 'action_type' => 'Pharmacy',
-                                'description' => "Updated dispensing for {$drug->name}: returned {$returnQty} unit(s) to stock. Total now: {$quantityToDispense}",
+                                'description' => "Updated dispensing for {$drug->name}: returned {$returnQty} unit(s) to stock. New prescribed quantity: {$newPrescribedQty}",
                                 'action_time' => now(),
                             ]);
                         }
                     }
                     
-                    // Update status based on total dispensed
+                    // Update status based on new prescribed quantity
                     $item->update([
-                        'dispensing_status' => $quantityToDispense >= $prescribedQty 
+                        'dispensing_status' => $alreadyDispensed >= $newPrescribedQty 
                             ? PrescriptionItem::STATUS_DISPENSED 
-                            : ($quantityToDispense > 0 ? PrescriptionItem::STATUS_PARTIALLY_DISPENSED : PrescriptionItem::STATUS_PENDING)
+                            : ($alreadyDispensed > 0 ? PrescriptionItem::STATUS_PARTIALLY_DISPENSED : PrescriptionItem::STATUS_PENDING)
                     ]);
                     
                 } else {
@@ -304,13 +305,13 @@ class PharmacyController extends Controller
                 'success' => true,
                 'message' => match($request->action) {
                     'dispense' => 'Item dispensed successfully.',
-                    'update' => 'Dispensing updated successfully.',
+                    'update' => 'Prescription quantity updated successfully.',
                     'cancel' => 'Item cancelled.',
                     default => 'Action completed.'
                 },
                 'new_status' => $item->dispensing_status,
                 'total_dispensed' => $item->dispensations->sum('quantity_dispensed'),
-                'prescribed_quantity' => $item->quantity,
+                'prescribed_quantity' => $item->quantity, // This is now the updated quantity
                 'remaining_stock' => $item->drug ? $item->drug->totalStockInFacility($facilityId) : 0,
             ]);
         } catch (\Exception $e) {
