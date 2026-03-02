@@ -738,18 +738,30 @@ class DoctorController extends Controller
             // Debug logging
             \Log::info("DischargePatient - Outcome: {$outcome}, Status: " . ($statusMap[$outcome] ?? 'DEFAULT_COMPLETED'));
 
-            // Ensure consultation exists and complete it
+            // Ensure consultation exists
             $consultation = ClinicalConsultation::firstOrCreate(
                 ['encounter_id' => $encounter->id],
                 ['doctor_id' => Auth::id(), 'status' => ClinicalConsultation::STATUS_IN_PROGRESS]
             );
 
-            $updateData = ['status' => ClinicalConsultation::STATUS_COMPLETED];
-            if ($request->clinical_note) {
-                $existingNote = $consultation->clinical_note ?? '';
-                $updateData['clinical_note'] = trim($existingNote . "\n\nDischarge Note: " . $request->clinical_note);
+            // Only complete consultation for Treated and Follow-up outcomes
+            // For Admit, keep consultation active as patient is still in care
+            if ($outcome !== 'Admit') {
+                $updateData = ['status' => ClinicalConsultation::STATUS_COMPLETED];
+                if ($request->clinical_note) {
+                    $existingNote = $consultation->clinical_note ?? '';
+                    $updateData['clinical_note'] = trim($existingNote . "\n\nDischarge Note: " . $request->clinical_note);
+                }
+                $consultation->update($updateData);
+            } else {
+                // For admission, just add note without completing consultation
+                if ($request->clinical_note) {
+                    $existingNote = $consultation->clinical_note ?? '';
+                    $consultation->update([
+                        'clinical_note' => trim($existingNote . "\n\nAdmission Note: " . $request->clinical_note)
+                    ]);
+                }
             }
-            $consultation->update($updateData);
 
             // Update encounter
             $encounterUpdate = ['status' => $statusMap[$outcome] ?? Encounter::STATUS_COMPLETED];
