@@ -78,11 +78,11 @@
             <div class="card-body p-4">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <span class="d-block mb-1 fs-13">Drug Admin</span>
-                        <h4 class="mb-0 fw-semibold">{{ $pendingAdministrations ?? 0 }}</h4>
+                        <span class="d-block mb-1 fs-13">Admitted Patients</span>
+                        <h4 class="mb-0 fw-semibold">{{ $currentAdmissions ?? 0 }}</h4>
                     </div>
                     <div class="flex-shrink-0">
-                        <span class="material-symbols-outlined text-info fs-1">medication</span>
+                        <span class="material-symbols-outlined text-info fs-1">local_hospital</span>
                     </div>
                 </div>
             </div>
@@ -106,9 +106,9 @@
                         </a>
                     </div>
                     <div class="col-md-3">
-                        <a href="{{ route('nurse.triage.history') }}" class="btn btn-outline-secondary w-100 py-3">
-                            <span class="material-symbols-outlined d-block mb-2 fs-1">history</span>
-                            Triage History
+                        <a href="{{ route('nurse.admitted.index') }}" class="btn btn-info w-100 py-3">
+                            <span class="material-symbols-outlined d-block mb-2 fs-1">local_hospital</span>
+                            Admitted Patients
                         </a>
                     </div>
                     <div class="col-md-3">

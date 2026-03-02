@@ -99,6 +99,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/drug-administration', [NurseController::class, 'drugAdministrationIndex'])->name('drug-administration.index');
         Route::get('/drug-administration/{prescriptionItem}', [NurseController::class, 'administerDrug'])->name('drug-administration.show');
         Route::post('/drug-administration/{prescriptionItem}', [NurseController::class, 'storeAdministration'])->name('drug-administration.store');
+        
+        // Admitted Patients
+        Route::get('/admitted', [NurseController::class, 'admittedIndex'])->name('admitted.index');
+        Route::get('/admitted/{admission}', [NurseController::class, 'admittedShow'])->name('admitted.show');
+        Route::put('/admitted/{admission}/room-bed', [NurseController::class, 'updateRoomBed'])->name('admitted.update-room-bed');
+    });
+    
+    // API Routes for dynamic loading
+    Route::prefix('api')->middleware(['auth'])->group(function () {
+        Route::get('/wards/{ward}/beds', function($ward) {
+            $ward = \App\Models\Ward::with('beds')->findOrFail($ward);
+            return response()->json(['beds' => $ward->beds]);
+        });
     });
     
     // Doctor Routes

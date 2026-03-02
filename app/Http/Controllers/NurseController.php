@@ -8,6 +8,9 @@ use App\Models\Encounter;
 use App\Models\VitalSign;
 use App\Models\PrescriptionItem;
 use App\Models\DrugAdministration;
+use App\Models\Admission;
+use App\Models\Ward;
+use App\Models\Bed;
 
 class NurseController extends Controller
 {
@@ -48,6 +51,11 @@ class NurseController extends Controller
         })->where('dispensing_status', PrescriptionItem::STATUS_DISPENSED)
           ->count();
           
+        // Current admissions
+        $currentAdmissions = Admission::whereHas('encounter', function($q) use ($facilityId) {
+            $q->where('facility_id', $facilityId);
+        })->where('is_active', true)->count();
+          
         // Recent triage activity (last 10)
         $recentTriage = VitalSign::with(['encounter.patient.beneficiary', 'takenBy'])
             ->whereHas('encounter', function($q) use ($facilityId) {
@@ -72,6 +80,7 @@ class NurseController extends Controller
             'completedToday',
             'criticalToday',
             'pendingAdministrations',
+            'currentAdmissions',
             'recentTriage',
             'priorityStats'
         ));
@@ -357,5 +366,101 @@ class NurseController extends Controller
 
         return redirect()->route('nurse.drug-administration.index')
             ->with('success', 'Drug administration recorded successfully.');
+    }
+
+    /**
+     * Admitted Patients - List patients in nurse's ward
+     */
+    public function admittedIndex(Request $request)
+    {
+        $user = Auth::user();
+        $facilityId = $user->facility_id;
+        
+        // Get admissions for this facility
+        $query = Admission::with(['encounter.patient', 'encounter.consultations', 'ward', 'bed', 'admittedBy'])
+            ->whereHas('encounter', function($q) use ($facilityId) {
+                $q->where('facility_id', $facilityId);
+            })
+            ->where('is_active', true);
+            
+        // Filter by ward if specified
+        if ($request->filled('ward_id')) {
+            $query->where('ward_id', $request->ward_id);
+        }
+        
+        // Search by patient name or ID
+        if ($search = $request->get('search')) {
+            $query->whereHas('encounter.patient', function($q) use ($search) {
+                $q->search($search);
+            });
+        }
+        
+        $admissions = $query->latest('admission_date')->paginate(15);
+        $wards = Ward::where('facility_id', $facilityId)->orderBy('name')->pluck('name', 'id');
+        
+        return view('nurse.admitted.index', compact('admissions', 'wards'));
+    }
+
+    /**
+     * Admitted Patient - Show details and allow room/bed management
+     */
+    public function admittedShow(Admission $admission)
+    {
+        // Check if admission belongs to nurse's facility
+        if ($admission->encounter->facility_id !== Auth::user()->facility_id) {
+            abort(403);
+        }
+        
+        $admission->load(['encounter.patient', 'encounter.consultations', 'ward', 'bed', 'admittedBy']);
+        $wards = Ward::where('facility_id', Auth::user()->facility_id)->orderBy('name')->get();
+        
+        // Get available beds in current ward
+        $availableBeds = [];
+        if ($admission->ward_id) {
+            $availableBeds = Bed::where('ward_id', $admission->ward_id)
+                ->where(function($q) {
+                    $q->where('is_occupied', false)
+                      ->orWhere('id', request()->old('bed_id'));
+                })
+                ->orderBy('name')
+                ->get();
+        }
+        
+        return view('nurse.admitted.show', compact('admission', 'wards', 'availableBeds'));
+    }
+
+    /**
+     * Update patient's room and bed
+     */
+    public function updateRoomBed(Request $request, Admission $admission)
+    {
+        // Check if admission belongs to nurse's facility
+        if ($admission->encounter->facility_id !== Auth::user()->facility_id) {
+            abort(403);
+        }
+        
+        $request->validate([
+            'ward_id' => 'required|exists:wards,id',
+            'bed_id'  => 'nullable|exists:beds,id',
+        ]);
+        
+        // Free up old bed if assigned
+        if ($admission->bed_id && $admission->bed_id != $request->bed_id) {
+            Bed::where('id', $admission->bed_id)->update(['is_occupied' => false]);
+        }
+        
+        // Update admission
+        $admission->update([
+            'ward_id' => $request->ward_id,
+            'bed_id'  => $request->bed_id,
+        ]);
+        
+        // Mark new bed as occupied if assigned
+        if ($request->bed_id) {
+            Bed::where('id', $request->bed_id)->update(['is_occupied' => true]);
+        }
+        
+        return redirect()->route('nurse.admitted.show', $admission)
+            ->with('success', 'Room/Bed updated successfully.');
     }
 }
