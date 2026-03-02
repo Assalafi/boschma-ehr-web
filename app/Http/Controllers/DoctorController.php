@@ -1677,11 +1677,19 @@ class DoctorController extends Controller
                 }
 
                 // Upsert Investigation record
-                $consultation = ClinicalConsultation::where('encounter_id', $encounter->id)->first();
+                // Ensure consultation exists for clinical_consultation_id
+                $consultation = ClinicalConsultation::firstOrCreate(
+                    ['encounter_id' => $encounter->id],
+                    [
+                        'doctor_id' => Auth::id(),
+                        'status'    => ClinicalConsultation::STATUS_IN_PROGRESS,
+                    ]
+                );
+                
                 Investigation::updateOrCreate(
                     ['encounter_id' => $encounter->id, 'type' => 'Service Order'],
                     [
-                        'clinical_consultation_id' => $consultation?->id,
+                        'clinical_consultation_id' => $consultation->id,
                         'patient_id'               => $encounter->patient_id,
                         'facility_id'              => $facilityId,
                         'ordered_by'               => Auth::id(),
