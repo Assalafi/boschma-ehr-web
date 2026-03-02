@@ -94,6 +94,11 @@ class Encounter extends Model
         return $this->hasMany(Admission::class);
     }
 
+    public function admission()
+    {
+        return $this->hasOne(Admission::class)->where('is_active', true);
+    }
+
     public function facilityClaim()
     {
         return $this->hasOne(FacilityClaim::class);

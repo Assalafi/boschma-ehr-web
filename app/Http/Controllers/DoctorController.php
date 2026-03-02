@@ -140,9 +140,10 @@ class DoctorController extends Controller
 
         $counts = [
             'triaged'          => (clone $base)->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->whereDoesntHave('consultations')->whereHas('vitalSigns')->count(),
-            'inConsultation'   => (clone $base)->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->count(),
+            'inConsultation'   => (clone $base)->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->where('status', '!=', Encounter::STATUS_ADMITTED)->count(),
             'awaitingLab'      => (clone $base)->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'))->count(),
             'awaitingPharmacy' => (clone $base)->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]))->count(),
+            'admitted'         => (clone $base)->where('status', Encounter::STATUS_ADMITTED)->count(),
             'completedToday'   => (clone $base)->whereHas('consultations', fn($q) => $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', today()))->count(),
         ];
 
@@ -150,8 +151,9 @@ class DoctorController extends Controller
         $doctors  = \App\Models\User::where('facility_id', $facilityId)
             ->whereHas('roles', fn($q) => $q->where('name', 'Doctor'))
             ->orderBy('name')->pluck('name', 'id');
+        $wards    = \App\Models\Ward::where('facility_id', $facilityId)->orderBy('name')->pluck('name', 'id');
 
-        return view('doctor.queue', compact('counts', 'programs', 'doctors'));
+        return view('doctor.queue', compact('counts', 'programs', 'doctors', 'wards'));
     }
     /**
      * AJAX - returns paginated, filtered HTML for one queue tab.
@@ -163,7 +165,7 @@ class DoctorController extends Controller
         $tab = $request->get('tab', 'triaged');
         $perPage = min(max((int) $request->get('per_page', 15), 1), 100);
         $search = trim($request->get('search', ''));
-        $query = Encounter::with(['patient', 'vitalSigns', 'program', 'consultations'])->where('facility_id', $facilityId);
+        $query = Encounter::with(['patient', 'vitalSigns', 'program', 'consultations', 'admission.ward', 'admission.bed'])->where('facility_id', $facilityId);
         if ($search) {
             $query->whereHas('patient', fn($q) => $q->search($search));
         }
@@ -189,6 +191,12 @@ class DoctorController extends Controller
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._pharmacy_table'; break;
+            case 'admitted':
+                $query->where('status', Encounter::STATUS_ADMITTED);
+                if ($request->filled('program')) $query->where('program_id', $request->program);
+                if ($request->filled('ward')) $query->whereHas('admission', fn($q) => $q->where('ward_id', $request->ward));
+                $query->orderByDesc('updated_at');
+                $partial = 'doctor.queue._admitted_table'; break;
             case 'completedToday':
                 $dateFrom = $request->get('date_from', today()->format('Y-m-d'));
                 $dateTo = $request->get('date_to', today()->format('Y-m-d'));

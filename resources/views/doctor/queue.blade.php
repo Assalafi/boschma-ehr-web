@@ -78,6 +78,10 @@
       <span class="material-symbols-outlined" style="font-size:16px">medication</span> Pharmacy
       <span class="tab-count" data-count="awaitingPharmacy" style="background:#f1f5f9;color:#475569">{{ $counts['awaitingPharmacy'] }}</span>
     </button>
+    <button class="queue-tab" data-tab="admitted" type="button">
+      <span class="material-symbols-outlined" style="font-size:16px">local_hospital</span> Admitted
+      <span class="tab-count" data-count="admitted" style="background:#e0e7ff;color:#4f46e5">{{ $counts['admitted'] }}</span>
+    </button>
     <button class="queue-tab" data-tab="completedToday" type="button">
       <span class="material-symbols-outlined" style="font-size:16px">check_circle</span> Completed
       <span class="tab-count" data-count="completedToday" style="background:#dcfce7;color:#059669">{{ $counts['completedToday'] }}</span>
@@ -127,6 +131,18 @@
     <select class="tab-filter" data-filter="program"><option value="">All Programs</option>@foreach($programs as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
     <select class="tab-filter" data-filter="per_page"><option value="15">15 / page</option><option value="25">25</option><option value="50">50</option></select>
     <span class="tab-info" data-info="awaitingPharmacy"></span>
+  </div>
+
+  {{-- ADMITTED filters --}}
+  <div class="tab-toolbar" data-toolbar="admitted" style="display:none">
+    <div class="tab-search-wrap">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" class="tab-search-input" data-filter="search" placeholder="Search patient, ID, or ward...">
+    </div>
+    <select class="tab-filter" data-filter="ward"><option value="">All Wards</option>@foreach($wards as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
+    <select class="tab-filter" data-filter="program"><option value="">All Programs</option>@foreach($programs as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
+    <select class="tab-filter" data-filter="per_page"><option value="15">15 / page</option><option value="25">25</option><option value="50">50</option></select>
+    <span class="tab-info" data-info="admitted"></span>
   </div>
 
   {{-- COMPLETED filters --}}
