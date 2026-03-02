@@ -70,19 +70,23 @@ class PharmacyController extends Controller
     {
         $facilityId = Auth::user()->facility_id;
 
-        $query = Prescription::with([
-            'consultation.encounter.patient',
+        $query = PrescriptionItem::with([
+            'prescription.consultation.encounter.patient',
             'prescribedBy:id,name',
-            'items' => fn($q) => $q->whereIn('dispensing_status', [PrescriptionItem::STATUS_PENDING]),
-            'items.drug',
+            'drug',
         ])
-        ->whereHas('consultation.encounter', fn($q) => $q->where('facility_id', $facilityId))
-        ->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL])
+        ->whereIn('dispensing_status', [PrescriptionItem::STATUS_PENDING, PrescriptionItem::STATUS_PARTIALLY_DISPENSED])
+        ->whereHas('prescription.consultation.encounter', function($q) use ($facilityId) {
+            $q->where('facility_id', $facilityId);
+        })
+        ->whereHas('prescription', function($q) {
+            $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]);
+        })
         ->latest();
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->whereHas('consultation.encounter.patient', fn($q) =>
+            $query->whereHas('prescription.consultation.encounter.patient', fn($q) =>
                 $q->search($s));
         }
 
@@ -224,7 +228,7 @@ class PharmacyController extends Controller
                     $item->update([
                         'dispensing_status' => $quantityToDispense >= $prescribedQty 
                             ? PrescriptionItem::STATUS_DISPENSED 
-                            : PrescriptionItem::STATUS_PENDING
+                            : ($quantityToDispense > 0 ? PrescriptionItem::STATUS_PARTIALLY_DISPENSED : PrescriptionItem::STATUS_PENDING)
                     ]);
                     
                 } else {
@@ -260,7 +264,7 @@ class PharmacyController extends Controller
                     $item->update([
                         'dispensing_status' => $totalDispensed >= $prescribedQty 
                             ? PrescriptionItem::STATUS_DISPENSED 
-                            : PrescriptionItem::STATUS_PENDING
+                            : ($totalDispensed > 0 ? PrescriptionItem::STATUS_PARTIALLY_DISPENSED : PrescriptionItem::STATUS_PENDING)
                     ]);
                     
                     // Log initial dispensing
@@ -385,7 +389,7 @@ class PharmacyController extends Controller
                 $item->update([
                     'dispensing_status' => $totalDispensed >= $item->quantity
                         ? PrescriptionItem::STATUS_DISPENSED
-                        : PrescriptionItem::STATUS_PENDING,
+                        : ($totalDispensed > 0 ? PrescriptionItem::STATUS_PARTIALLY_DISPENSED : PrescriptionItem::STATUS_PENDING),
                 ]);
 
                 if ($encounter) {

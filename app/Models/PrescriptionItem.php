@@ -25,6 +25,7 @@ class PrescriptionItem extends Model
 
     // Status constants
     const STATUS_PENDING = 'Pending';
+    const STATUS_PARTIALLY_DISPENSED = 'Partially Dispensed';
     const STATUS_DISPENSED = 'Dispensed';
     const STATUS_ADMINISTERED = 'Administered';
 
@@ -101,8 +102,12 @@ class PrescriptionItem extends Model
      */
     public function updateDispensingStatus()
     {
-        if ($this->isFullyDispensed()) {
+        $totalDispensed = $this->dispensations->sum('quantity_dispensed');
+        
+        if ($totalDispensed >= $this->quantity) {
             $this->dispensing_status = self::STATUS_DISPENSED;
+        } elseif ($totalDispensed > 0) {
+            $this->dispensing_status = self::STATUS_PARTIALLY_DISPENSED;
         } else {
             $this->dispensing_status = self::STATUS_PENDING;
         }
