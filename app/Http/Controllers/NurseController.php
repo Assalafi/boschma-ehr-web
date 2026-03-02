@@ -447,11 +447,14 @@ class NurseController extends Controller
         // Get available beds in current ward
         $availableBeds = [];
         if ($admission->ward_id) {
-            $availableBeds = Bed::where('ward_id', $admission->ward_id)
+            $availableBeds = Bed::whereHas('room', function($q) use ($admission) {
+                    $q->where('ward_id', $admission->ward_id);
+                })
                 ->where(function($q) {
                     $q->where('is_occupied', false)
                       ->orWhere('id', request()->old('bed_id'));
                 })
+                ->with('room')
                 ->orderBy('name')
                 ->get();
         }
