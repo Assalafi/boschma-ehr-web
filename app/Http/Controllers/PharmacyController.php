@@ -70,23 +70,23 @@ class PharmacyController extends Controller
     {
         $facilityId = Auth::user()->facility_id;
 
-        $query = PrescriptionItem::with([
-            'prescription.consultation.encounter.patient',
-            'prescription.prescribedBy:id,name',
-            'drug',
+        $query = Prescription::with([
+            'consultation.encounter.patient',
+            'prescribedBy:id,name',
+            'items.drug',
         ])
-        ->whereIn('dispensing_status', [PrescriptionItem::STATUS_PENDING, PrescriptionItem::STATUS_PARTIALLY_DISPENSED])
-        ->whereHas('prescription.consultation.encounter', function($q) use ($facilityId) {
+        ->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL])
+        ->whereHas('consultation.encounter', function($q) use ($facilityId) {
             $q->where('facility_id', $facilityId);
         })
-        ->whereHas('prescription', function($q) {
-            $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]);
+        ->whereHas('items', function($q) {
+            $q->whereIn('dispensing_status', [PrescriptionItem::STATUS_PENDING, PrescriptionItem::STATUS_PARTIALLY_DISPENSED]);
         })
         ->latest();
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->whereHas('prescription.consultation.encounter.patient', fn($q) =>
+            $query->whereHas('consultation.encounter.patient', fn($q) =>
                 $q->search($s));
         }
 
