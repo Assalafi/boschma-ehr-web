@@ -109,7 +109,7 @@ Route::middleware(['auth'])->group(function () {
     // API Routes for dynamic loading
     Route::prefix('api')->middleware(['auth'])->group(function () {
         Route::get('/wards/{ward}/beds', function($ward) {
-            $ward = \App\Models\Ward::with('rooms.beds')->findOrFail($ward);
+            $ward = \App\Models\Ward::with('rooms.beds.room')->findOrFail($ward);
             $beds = $ward->rooms->flatMap->beds;
             return response()->json(['beds' => $beds]);
         });

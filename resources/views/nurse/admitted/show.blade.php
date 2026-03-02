@@ -114,7 +114,7 @@
                 <option value="">Select Bed (Optional)</option>
                 @foreach($availableBeds as $bed)
                   <option value="{{ $bed->id }}" {{ $admission->bed_id == $bed->id ? 'selected' : '' }}>
-                    {{ $bed->name }} {{ $bed->is_occupied ? '(Occupied)' : '' }}
+                    {{ $bed->room->name ?? 'Unknown Room' }} - {{ $bed->name }} {{ $bed->is_occupied ? '(Occupied)' : '' }}
                   </option>
                 @endforeach
               </select>
@@ -202,7 +202,8 @@ function loadBeds(wardId) {
             let html = '<option value="">Select Bed (Optional)</option>';
             data.beds.forEach(bed => {
                 const occupiedText = bed.is_occupied ? ' (Occupied)' : '';
-                html += `<option value="${bed.id}">${bed.name}${occupiedText}</option>`;
+                const roomName = bed.room ? bed.room.name : 'Unknown Room';
+                html += `<option value="${bed.id}">${roomName} - ${bed.name}${occupiedText}</option>`;
             });
             document.getElementById('bed_id').innerHTML = html;
         })
