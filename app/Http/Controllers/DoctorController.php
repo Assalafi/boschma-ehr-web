@@ -735,6 +735,9 @@ class DoctorController extends Controller
                 'Follow-up' => Encounter::STATUS_FOLLOW_UP,
             ];
 
+            // Debug logging
+            \Log::info("DischargePatient - Outcome: {$outcome}, Status: " . ($statusMap[$outcome] ?? 'DEFAULT_COMPLETED'));
+
             // Ensure consultation exists and complete it
             $consultation = ClinicalConsultation::firstOrCreate(
                 ['encounter_id' => $encounter->id],
@@ -750,6 +753,7 @@ class DoctorController extends Controller
 
             // Update encounter
             $encounterUpdate = ['status' => $statusMap[$outcome] ?? Encounter::STATUS_COMPLETED];
+            \Log::info("Updating encounter {$encounter->id} to status: {$encounterUpdate['status']}");
             if ($outcome === 'Follow-up' && $request->follow_up_date) {
                 $encounterUpdate['follow_up_date'] = $request->follow_up_date;
             }
