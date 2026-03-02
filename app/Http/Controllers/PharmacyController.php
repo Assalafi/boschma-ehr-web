@@ -225,11 +225,9 @@ class PharmacyController extends Controller
                         }
                     }
                     
-                    // Update status based on new prescribed quantity
+                    // Pharmacist qty is the real qty - mark as dispensed
                     $item->update([
-                        'dispensing_status' => $alreadyDispensed >= $newPrescribedQty 
-                            ? PrescriptionItem::STATUS_DISPENSED 
-                            : ($alreadyDispensed > 0 ? PrescriptionItem::STATUS_PARTIALLY_DISPENSED : PrescriptionItem::STATUS_PENDING)
+                        'dispensing_status' => PrescriptionItem::STATUS_DISPENSED,
                     ]);
                     
                 } else {
@@ -260,12 +258,11 @@ class PharmacyController extends Controller
                     
                     $this->deductStock($drug, $quantityToDispense, $facilityId);
                     
-                    // Update status based on total dispensed
+                    // Pharmacist qty is the real qty - update prescribed quantity
                     $totalDispensed = $alreadyDispensed + $quantityToDispense;
                     $item->update([
-                        'dispensing_status' => $totalDispensed >= $prescribedQty 
-                            ? PrescriptionItem::STATUS_DISPENSED 
-                            : ($totalDispensed > 0 ? PrescriptionItem::STATUS_PARTIALLY_DISPENSED : PrescriptionItem::STATUS_PENDING)
+                        'quantity' => $totalDispensed,
+                        'dispensing_status' => PrescriptionItem::STATUS_DISPENSED,
                     ]);
                     
                     // Log initial dispensing
@@ -404,9 +401,8 @@ class PharmacyController extends Controller
                 $alreadyDispensed = $item->dispensations->sum('quantity_dispensed');
                 $totalDispensed   = $alreadyDispensed + $qty;
                 $item->update([
-                    'dispensing_status' => $totalDispensed >= $item->quantity
-                        ? PrescriptionItem::STATUS_DISPENSED
-                        : ($totalDispensed > 0 ? PrescriptionItem::STATUS_PARTIALLY_DISPENSED : PrescriptionItem::STATUS_PENDING),
+                    'quantity' => $totalDispensed,
+                    'dispensing_status' => PrescriptionItem::STATUS_DISPENSED,
                 ]);
 
                 if ($encounter) {
