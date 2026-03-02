@@ -68,11 +68,16 @@
           </td>
           <td>
             <div class="btn-group btn-group-sm">
-              <a href="{{ route('doctor.consultation.show', $enc->consultations->first()->id ?? '#') }}" class="btn btn-outline-primary btn-sm">
-                <span class="material-symbols-outlined" style="font-size:16px">visibility</span>
-              </a>
+              @if($enc->consultations->first())
+                <a href="{{ route('doctor.consultation.show', $enc->consultations->first()->id) }}" class="btn btn-outline-primary btn-sm" title="View Consultation">
+                  <span class="material-symbols-outlined" style="font-size:16px">visibility</span>
+                </a>
+                <a href="{{ route('doctor.consultation.start', $enc->id) }}?continue=1" class="btn btn-success btn-sm" title="Continue Consultation">
+                  <span class="material-symbols-outlined" style="font-size:16px">play_arrow</span> Continue
+                </a>
+              @endif
               @if($admission)
-                <button type="button" class="btn btn-outline-success btn-sm" onclick="manageAdmission('{{ $enc->id }}', '{{ $admission->id }}')">
+                <button type="button" class="btn btn-outline-info btn-sm" onclick="manageAdmission('{{ $enc->id }}', '{{ $admission->id }}')" title="Manage Admission">
                   <span class="material-symbols-outlined" style="font-size:16px">bed</span>
                 </button>
               @endif
