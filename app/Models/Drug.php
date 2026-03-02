@@ -119,7 +119,7 @@ class Drug extends Model
             
             // Update status if exhausted
             if ($stock->fresh()->quantity_remaining <= 0) {
-                $stock->update(['status' => 'exhausted']);
+                $stock->update(['status' => 'dispensed']);
             }
             
             $remainingToDeduct -= $deductFromThis;
