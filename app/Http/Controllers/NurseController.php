@@ -52,7 +52,7 @@ class NurseController extends Controller
           ->count();
           
         // Current admissions (only in nurse's assigned wards)
-        $nurseWardIds = $user->wards()->pluck('id')->toArray();
+        $nurseWardIds = $user->wards()->pluck('wards.id')->toArray();
         $currentAdmissions = Admission::whereHas('encounter', function($q) use ($facilityId) {
             $q->where('facility_id', $facilityId);
         })->where('is_active', true)
@@ -381,7 +381,7 @@ class NurseController extends Controller
         $facilityId = $user->facility_id;
         
         // Get nurse's assigned wards
-        $nurseWardIds = $user->wards()->pluck('id')->toArray();
+        $nurseWardIds = $user->wards()->pluck('wards.id')->toArray();
         
         // Get admissions for this facility AND nurse's assigned wards
         $query = Admission::with(['encounter.patient', 'encounter.consultations', 'ward', 'bed', 'admittedBy'])
@@ -431,7 +431,7 @@ class NurseController extends Controller
         }
         
         // Check if admission is in nurse's assigned ward
-        $nurseWardIds = $user->wards()->pluck('id')->toArray();
+        $nurseWardIds = $user->wards()->pluck('wards.id')->toArray();
         if (!empty($nurseWardIds) && !in_array($admission->ward_id, $nurseWardIds)) {
             abort(403, 'You do not have permission to manage patients in this ward.');
         }
@@ -472,7 +472,7 @@ class NurseController extends Controller
         }
         
         // Check if current ward is assigned to nurse
-        $nurseWardIds = $user->wards()->pluck('id')->toArray();
+        $nurseWardIds = $user->wards()->pluck('wards.id')->toArray();
         if (!empty($nurseWardIds) && !in_array($admission->ward_id, $nurseWardIds)) {
             abort(403, 'You do not have permission to manage patients in this ward.');
         }
