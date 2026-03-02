@@ -280,7 +280,23 @@ class PharmacyController extends Controller
                     }
                 }
             } else {
-                // Cancel action
+                // Cancel action - return all dispensed stock to inventory
+                $totalDispensed = $item->dispensations->sum('quantity_dispensed');
+                
+                if ($totalDispensed > 0 && $item->drug) {
+                    // Add stock back using reverse FEFO (add to most recent batch)
+                    $this->addStock($item->drug, $totalDispensed, $facilityId);
+                    
+                    // Create a negative dispensation record to track the return
+                    PharmacyDispensation::create([
+                        'prescription_item_id' => $item->id,
+                        'quantity_dispensed'   => -$totalDispensed,
+                        'cost_of_medication'   => -$item->drug->getSellingPrice($facilityId) * $totalDispensed,
+                        'dispensing_date_time' => now(),
+                        'dispensing_officer_id' => Auth::id(),
+                    ]);
+                }
+                
                 $item->update(['dispensing_status' => 'Cancelled']);
                 
                 if ($encounter) {
@@ -288,7 +304,7 @@ class PharmacyController extends Controller
                         'encounter_id' => $encounter->id,
                         'user_id' => Auth::id(),
                         'action_type' => 'Pharmacy',
-                        'description' => "Cancelled prescription item: " . ($item->drug ? $item->drug->name : 'Unknown drug'),
+                        'description' => "Cancelled prescription item and returned {$totalDispensed} unit(s) to stock: " . ($item->drug ? $item->drug->name : 'Unknown drug'),
                         'action_time' => now(),
                     ]);
                 }
