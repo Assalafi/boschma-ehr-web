@@ -65,21 +65,28 @@
 
 {{-- Admitted Patients List --}}
 <div class="nurse-card">
-  <div class="table-responsive">
-    <table class="table table-hover align-middle" style="font-size:13px">
-      <thead class="bg-light">
-        <tr>
-          <th>Patient</th>
-          <th>ID</th>
-          <th>Ward/Bed</th>
-          <th>Admission Type</th>
-          <th>Admitted By</th>
-          <th>Admission Date</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @forelse($admissions as $admission)
+  @if(Auth::user()->wards()->count() === 0)
+    <div class="card-body text-center py-5">
+      <span class="material-symbols-outlined" style="font-size:48px;display:block;margin:0 auto 16px;opacity:0.3">assignment_ind</span>
+      <h5 class="text-muted">No Wards Assigned</h5>
+      <p class="text-muted">You have not been assigned to any wards. Please contact your administrator.</p>
+    </div>
+  @else
+    <div class="table-responsive">
+      <table class="table table-hover align-middle" style="font-size:13px">
+        <thead class="bg-light">
+          <tr>
+            <th>Patient</th>
+            <th>ID</th>
+            <th>Ward/Bed</th>
+            <th>Admission Type</th>
+            <th>Admitted By</th>
+            <th>Admission Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse($admissions as $admission)
           @php
             $patient = $admission->encounter->patient;
           @endphp
@@ -137,15 +144,16 @@
             </td>
           </tr>
         @endforelse
-      </tbody>
-    </table>
-  </div>
-  
-  {{-- Pagination --}}
-  @if($admissions->hasPages())
-    <div class="card-footer">
-      {{ $admissions->links() }}
+        </tbody>
+      </table>
     </div>
+    
+    {{-- Pagination --}}
+    @if($admissions->hasPages())
+      <div class="card-footer">
+        {{ $admissions->links() }}
+      </div>
+    @endif
   @endif
 </div>
 

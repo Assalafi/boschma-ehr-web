@@ -137,6 +137,15 @@ class User extends Authenticatable
         return $this->hasMany(Encounter::class, 'officer_in_charge_id');
     }
 
+    /**
+     * Get wards assigned to this nurse.
+     */
+    public function wards()
+    {
+        return $this->belongsToMany(Ward::class, 'nurse_ward')
+            ->wherePivot('is_active', true);
+    }
+
     protected static function boot()
     {
         parent::boot();

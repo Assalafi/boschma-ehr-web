@@ -51,10 +51,14 @@ class NurseController extends Controller
         })->where('dispensing_status', PrescriptionItem::STATUS_DISPENSED)
           ->count();
           
-        // Current admissions
+        // Current admissions (only in nurse's assigned wards)
+        $nurseWardIds = $user->wards()->pluck('id')->toArray();
         $currentAdmissions = Admission::whereHas('encounter', function($q) use ($facilityId) {
             $q->where('facility_id', $facilityId);
-        })->where('is_active', true)->count();
+        })->where('is_active', true)
+        ->when(!empty($nurseWardIds), function($q) use ($nurseWardIds) {
+            $q->whereIn('ward_id', $nurseWardIds);
+        })->count();
           
         // Recent triage activity (last 10)
         $recentTriage = VitalSign::with(['encounter.patient.beneficiary', 'takenBy'])
@@ -369,23 +373,31 @@ class NurseController extends Controller
     }
 
     /**
-     * Admitted Patients - List patients in nurse's ward
+     * Admitted Patients - List patients in nurse's assigned wards
      */
     public function admittedIndex(Request $request)
     {
         $user = Auth::user();
         $facilityId = $user->facility_id;
         
-        // Get admissions for this facility
+        // Get nurse's assigned wards
+        $nurseWardIds = $user->wards()->pluck('id')->toArray();
+        
+        // Get admissions for this facility AND nurse's assigned wards
         $query = Admission::with(['encounter.patient', 'encounter.consultations', 'ward', 'bed', 'admittedBy'])
             ->whereHas('encounter', function($q) use ($facilityId) {
                 $q->where('facility_id', $facilityId);
             })
-            ->where('is_active', true);
+            ->where('is_active', true)
+            ->when(!empty($nurseWardIds), function($q) use ($nurseWardIds) {
+                $q->whereIn('ward_id', $nurseWardIds);
+            });
             
-        // Filter by ward if specified
+        // Filter by ward if specified (must be one of nurse's assigned wards)
         if ($request->filled('ward_id')) {
-            $query->where('ward_id', $request->ward_id);
+            if (in_array($request->ward_id, $nurseWardIds)) {
+                $query->where('ward_id', $request->ward_id);
+            }
         }
         
         // Search by patient name or ID
@@ -396,7 +408,12 @@ class NurseController extends Controller
         }
         
         $admissions = $query->latest('admission_date')->paginate(15);
-        $wards = Ward::where('facility_id', $facilityId)->orderBy('name')->pluck('name', 'id');
+        
+        // Only show nurse's assigned wards in filter dropdown
+        $wards = Ward::where('facility_id', $facilityId)
+            ->whereIn('id', $nurseWardIds)
+            ->orderBy('name')
+            ->pluck('name', 'id');
         
         return view('nurse.admitted.index', compact('admissions', 'wards'));
     }
@@ -406,13 +423,26 @@ class NurseController extends Controller
      */
     public function admittedShow(Admission $admission)
     {
+        $user = Auth::user();
+        
         // Check if admission belongs to nurse's facility
-        if ($admission->encounter->facility_id !== Auth::user()->facility_id) {
+        if ($admission->encounter->facility_id !== $user->facility_id) {
             abort(403);
         }
         
+        // Check if admission is in nurse's assigned ward
+        $nurseWardIds = $user->wards()->pluck('id')->toArray();
+        if (!empty($nurseWardIds) && !in_array($admission->ward_id, $nurseWardIds)) {
+            abort(403, 'You do not have permission to manage patients in this ward.');
+        }
+        
         $admission->load(['encounter.patient', 'encounter.consultations', 'ward', 'bed', 'admittedBy']);
-        $wards = Ward::where('facility_id', Auth::user()->facility_id)->orderBy('name')->get();
+        
+        // Only show nurse's assigned wards for transfer
+        $wards = Ward::where('facility_id', $user->facility_id)
+            ->whereIn('id', $nurseWardIds)
+            ->orderBy('name')
+            ->get();
         
         // Get available beds in current ward
         $availableBeds = [];
@@ -434,15 +464,28 @@ class NurseController extends Controller
      */
     public function updateRoomBed(Request $request, Admission $admission)
     {
+        $user = Auth::user();
+        
         // Check if admission belongs to nurse's facility
-        if ($admission->encounter->facility_id !== Auth::user()->facility_id) {
+        if ($admission->encounter->facility_id !== $user->facility_id) {
             abort(403);
+        }
+        
+        // Check if current ward is assigned to nurse
+        $nurseWardIds = $user->wards()->pluck('id')->toArray();
+        if (!empty($nurseWardIds) && !in_array($admission->ward_id, $nurseWardIds)) {
+            abort(403, 'You do not have permission to manage patients in this ward.');
         }
         
         $request->validate([
             'ward_id' => 'required|exists:wards,id',
             'bed_id'  => 'nullable|exists:beds,id',
         ]);
+        
+        // Ensure new ward is also assigned to this nurse
+        if (!empty($nurseWardIds) && !in_array($request->ward_id, $nurseWardIds)) {
+            abort(403, 'You can only transfer patients to your assigned wards.');
+        }
         
         // Free up old bed if assigned
         if ($admission->bed_id && $admission->bed_id != $request->bed_id) {
