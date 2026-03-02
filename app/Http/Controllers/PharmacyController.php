@@ -72,7 +72,7 @@ class PharmacyController extends Controller
 
         $query = PrescriptionItem::with([
             'prescription.consultation.encounter.patient',
-            'prescribedBy:id,name',
+            'prescription.prescribedBy:id,name',
             'drug',
         ])
         ->whereIn('dispensing_status', [PrescriptionItem::STATUS_PENDING, PrescriptionItem::STATUS_PARTIALLY_DISPENSED])
