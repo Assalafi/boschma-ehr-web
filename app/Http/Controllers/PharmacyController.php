@@ -624,11 +624,11 @@ class PharmacyController extends Controller
             ->value('total') ?? 0;
 
         // Stock by program
-        $stockByProgram = DrugStock::where('facility_id', $facilityId)
-            ->where('status', 'approved')
-            ->where('quantity_remaining', '>', 0)
+        $stockByProgram = DrugStock::where('drug_stocks.facility_id', $facilityId)
+            ->where('drug_stocks.status', 'approved')
+            ->where('drug_stocks.quantity_remaining', '>', 0)
             ->join('programs', 'drug_stocks.program_id', '=', 'programs.id')
-            ->selectRaw('programs.name as program_name, programs.id as program_id, COUNT(DISTINCT drug_id) as drug_count, SUM(quantity_remaining) as total_qty')
+            ->selectRaw('programs.name as program_name, programs.id as program_id, COUNT(DISTINCT drug_stocks.drug_id) as drug_count, SUM(drug_stocks.quantity_remaining) as total_qty')
             ->groupBy('programs.id', 'programs.name')
             ->get();
 
