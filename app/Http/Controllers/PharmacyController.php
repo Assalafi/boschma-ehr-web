@@ -534,6 +534,9 @@ class PharmacyController extends Controller
         $user       = Auth::user();
         $facilityId = $user->facility_id;
 
+        // Debug: Log facility info
+        \Log::info("Pharmacy Drugs - Facility ID: {$facilityId}, User: {$user->name}");
+
         // All programs that have stock in this facility
         $programs = \App\Models\Program::whereHas('drugStocks', fn($q) =>
             $q->where('facility_id', $facilityId)
@@ -542,8 +545,11 @@ class PharmacyController extends Controller
         // Selected program filter
         $programId = $request->input('program_id');
 
-        // Build drug query
-        $query = Drug::where('facility_id', $facilityId)
+        // Build drug query - show drugs for facility OR global drugs (facility_id = 0)
+        $query = Drug::where(function($q) use ($facilityId) {
+                $q->where('facility_id', $facilityId)
+                  ->orWhere('facility_id', 0); // Include global drugs
+            })
             ->with(['stocks' => fn($q) =>
                 $q->where('facility_id', $facilityId)
                   ->where('status', 'approved')
@@ -569,21 +575,39 @@ class PharmacyController extends Controller
                       ->when($programId, fn($q2) => $q2->where('program_id', $programId))
                 );
             } elseif ($status === 'low') {
-                $query->whereHas('stocks', fn($q) =>
-                    $q->where('facility_id', $facilityId)
-                      ->where('status', 'approved')
-                      ->where('quantity_remaining', '>', 0)
-                      ->when($programId, fn($q2) => $q2->where('program_id', $programId))
-                )->get()->filter(fn($d) => $d->totalStockInFacility($facilityId, $programId) < 10 && $d->totalStockInFacility($facilityId, $programId) > 0);
+                // Get drugs with low stock (include global drugs)
+                $lowStockDrugIds = Drug::where(function($q) use ($facilityId) {
+                        $q->where('facility_id', $facilityId)
+                          ->orWhere('facility_id', 0);
+                    })
+                    ->whereHas('stocks', fn($q) =>
+                        $q->where('facility_id', $facilityId)
+                          ->where('status', 'approved')
+                          ->where('quantity_remaining', '>', 0)
+                          ->when($programId, fn($q2) => $q2->where('program_id', $programId))
+                    )
+                    ->get()
+                    ->filter(fn($d) => $d->totalStockInFacility($facilityId, $programId) < 10 && $d->totalStockInFacility($facilityId, $programId) > 0)
+                    ->pluck('id');
+                $query->whereIn('id', $lowStockDrugIds);
             }
         }
 
         $drugs = $query->orderBy('name')->paginate(25)->appends($request->query());
 
-        // Summary stats
-        $totalDrugs = Drug::where('facility_id', $facilityId)->count();
+        // Debug: Log results
+        \Log::info("Pharmacy Drugs - Total drugs found: {$drugs->total()}");
 
-        $inStockCount = Drug::where('facility_id', $facilityId)
+        // Summary stats (include global drugs)
+        $totalDrugs = Drug::where(function($q) use ($facilityId) {
+                $q->where('facility_id', $facilityId)
+                  ->orWhere('facility_id', 0);
+            })->count();
+
+        $inStockCount = Drug::where(function($q) use ($facilityId) {
+                $q->where('facility_id', $facilityId)
+                  ->orWhere('facility_id', 0);
+            })
             ->whereHas('stocks', fn($q) =>
                 $q->where('facility_id', $facilityId)
                   ->where('status', 'approved')
@@ -595,8 +619,11 @@ class PharmacyController extends Controller
         $lowStockCount = 0;
         $expiringCount = 0;
 
-        // Low stock: drugs with stock between 1-9
-        $allDrugsWithStock = Drug::where('facility_id', $facilityId)
+        // Low stock: drugs with stock between 1-9 (include global drugs)
+        $allDrugsWithStock = Drug::where(function($q) use ($facilityId) {
+                $q->where('facility_id', $facilityId)
+                  ->orWhere('facility_id', 0);
+            })
             ->whereHas('stocks', fn($q) =>
                 $q->where('facility_id', $facilityId)
                   ->where('status', 'approved')
