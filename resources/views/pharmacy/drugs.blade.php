@@ -50,6 +50,32 @@
 .pharm-nav a:hover { background: #e2e8f0; }
 .pharm-nav a.active { background: var(--pharm-primary); color: #fff; }
 .filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+{{-- Style bootstrap pagination to match pharmacy theme --}}
+.pharm-pagination .page-link { 
+  border: 1.5px solid var(--pharm-border); 
+  border-radius: 6px; 
+  margin: 0 2px; 
+  color: #475569; 
+  font-size: 12px; 
+  font-weight: 600; 
+  padding: 6px 12px;
+  transition: all .15s;
+}
+.pharm-pagination .page-link:hover { 
+  background: #f8fafc; 
+  border-color: #cbd5e1; 
+  color: #475569;
+}
+.pharm-pagination .page-item.active .page-link { 
+  background: var(--pharm-primary); 
+  border-color: var(--pharm-primary); 
+  color: #fff;
+}
+.pharm-pagination .page-item.disabled .page-link { 
+  opacity: .4; 
+  cursor: not-allowed;
+}
 </style>
 
 <div class="pharm-page">
@@ -288,50 +314,7 @@
   </div>
   @if($drugs->hasPages())
   <div class="pharm-pagination">
-    {{-- Previous --}}
-    @if($drugs->onFirstPage())
-      <span class="pharm-page-btn" disabled>
-        <span class="material-symbols-outlined" style="font-size:14px">chevron_left</span>
-      </span>
-    @else
-      <a href="{{ $drugs->previousPageUrl() }}" class="pharm-page-btn">
-        <span class="material-symbols-outlined" style="font-size:14px">chevron_left</span>
-      </a>
-    @endif
-
-    {{-- Page Numbers --}}
-    @foreach($elements = $drugs->elements() as $element)
-      @if(is_string($element))
-        <span class="pharm-page-btn" disabled>{{ $element }}</span>
-      @elseif(is_array($element))
-        {{-- First page separator --}}
-        @if($element['page'] == 1 && !$drugs->onFirstPage())
-          <a href="{{ $drugs->url(1) }}" class="pharm-page-btn">1</a>
-          <span class="pharm-page-btn" disabled>...</span>
-        @else
-          {{-- Last page separator --}}
-          @if($element['page'] == $drugs->lastPage() && !$drugs->onLastPage())
-            <span class="pharm-page-btn" disabled>...</span>
-            <a href="{{ $drugs->url($drugs->lastPage()) }}" class="pharm-page-btn">{{ $drugs->lastPage() }}</a>
-          @endif
-        @endif
-      @else
-        <a href="{{ $drugs->url($element) }}" class="pharm-page-btn {{ $drugs->currentPage() == $element ? 'active' : '' }}">
-          {{ $element }}
-        </a>
-      @endif
-    @endforeach
-
-    {{-- Next --}}
-    @if($drugs->hasMorePages())
-      <a href="{{ $drugs->nextPageUrl() }}" class="pharm-page-btn">
-        <span class="material-symbols-outlined" style="font-size:14px">chevron_right</span>
-      </a>
-    @else
-      <span class="pharm-page-btn" disabled>
-        <span class="material-symbols-outlined" style="font-size:14px">chevron_right</span>
-      </span>
-    @endif
+    {{ $drugs->links('pagination::bootstrap-4') }}
   </div>
   @endif
 </div>
