@@ -12,13 +12,21 @@ class DrugStock extends Model
     protected $fillable = [
         'drug_id',
         'facility_id',
+        'program_id',
         'batch_number',
         'expiry_date',
         'quantity',
+        'quantity_received',
         'quantity_remaining',
         'cost_price',
         'selling_price',
+        'unit_cost',
+        'supplier',
+        'notes',
         'status',
+        'request_id',
+        'stocked_by',
+        'stocked_at',
     ];
 
     protected $casts = [
@@ -37,5 +45,10 @@ class DrugStock extends Model
     public function facility()
     {
         return $this->belongsTo(Facility::class);
+    }
+
+    public function program()
+    {
+        return $this->belongsTo(Program::class);
     }
 }

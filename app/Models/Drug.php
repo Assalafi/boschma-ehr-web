@@ -69,7 +69,7 @@ class Drug extends Model
     /**
      * Get total available quantity from all stock entries in a specific facility
      */
-    public function totalStockInFacility($facilityId = null): int
+    public function totalStockInFacility($facilityId = null, $programId = null): int
     {
         if (!$facilityId) {
             $facilityId = \Illuminate\Support\Facades\Auth::user()->facility_id ?? null;
@@ -77,6 +77,7 @@ class Drug extends Model
         
         return $this->stocks()
             ->when($facilityId, fn($q) => $q->where('facility_id', $facilityId))
+            ->when($programId, fn($q) => $q->where('program_id', $programId))
             ->where('status', 'approved')
             ->where('quantity_remaining', '>', 0)
             ->sum('quantity_remaining');
@@ -85,15 +86,15 @@ class Drug extends Model
     /**
      * Check if sufficient stock is available in a specific facility
      */
-    public function hasStock(int $quantity, $facilityId = null): bool
+    public function hasStock(int $quantity, $facilityId = null, $programId = null): bool
     {
-        return $this->totalStockInFacility($facilityId) >= $quantity;
+        return $this->totalStockInFacility($facilityId, $programId) >= $quantity;
     }
 
     /**
      * Deduct quantity from stock using FEFO (First Expiry First Out)
      */
-    public function deductStock(int $quantity, $facilityId = null): int
+    public function deductStock(int $quantity, $facilityId = null, $programId = null): int
     {
         if (!$facilityId) {
             $facilityId = \Illuminate\Support\Facades\Auth::user()->facility_id ?? null;
@@ -104,6 +105,7 @@ class Drug extends Model
 
         $stocks = $this->stocks()
             ->where('facility_id', $facilityId)
+            ->when($programId, fn($q) => $q->where('program_id', $programId))
             ->where('status', 'approved')
             ->where('quantity_remaining', '>', 0)
             ->orderBy('expiry_date') // FEFO
@@ -132,9 +134,9 @@ class Drug extends Model
     /**
      * Check if drug is in stock
      */
-    public function isInStock($quantity = 1, $facilityId = null): bool
+    public function isInStock($quantity = 1, $facilityId = null, $programId = null): bool
     {
-        return $this->getCurrentStockAttribute($facilityId) >= $quantity;
+        return $this->totalStockInFacility($facilityId, $programId) >= $quantity;
     }
 
     /**
@@ -198,14 +200,15 @@ class Drug extends Model
     /**
      * Scope in stock
      */
-    public function scopeInStock($query, $facilityId = null)
+    public function scopeInStock($query, $facilityId = null, $programId = null)
     {
         if (!$facilityId) {
             $facilityId = Auth::user()?->facility_id;
         }
         
-        return $query->whereHas('stocks', function ($q) use ($facilityId) {
+        return $query->whereHas('stocks', function ($q) use ($facilityId, $programId) {
             $q->where('facility_id', $facilityId)
+              ->when($programId, fn($q2) => $q2->where('program_id', $programId))
               ->where('quantity_remaining', '>', 0)
               ->where('status', 'approved');
         });

@@ -98,6 +98,10 @@
       <span class="mx-2" style="opacity:.4">|</span>
       <span class="material-symbols-outlined align-middle me-1" style="font-size:16px">stethoscope</span>Dr. {{ $doctor->name }}
       @endif
+      @if($encounter && $encounter->program)
+      <span class="mx-2" style="opacity:.4">|</span>
+      <span class="material-symbols-outlined align-middle me-1" style="font-size:16px">assignment</span>{{ $encounter->program->name }}
+      @endif
     </div>
   </div>
   <div class="text-end">
@@ -271,7 +275,7 @@
             @foreach($prescription->items as $item)
             @php
               $drug     = $item->drug;
-              $stock    = $drug ? $drug->getCurrentStockAttribute($facilityId) : 0;
+              $stock    = $drug ? $drug->totalStockInFacility($facilityId, $programId ?? null) : 0;
               $dispensed= $item->dispensations->sum('quantity_dispensed');
               $remaining= $item->quantity - $dispensed;
               $isPending  = $item->dispensing_status === \App\Models\PrescriptionItem::STATUS_PENDING;

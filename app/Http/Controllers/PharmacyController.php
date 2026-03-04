@@ -111,12 +111,15 @@ class PharmacyController extends Controller
 
         $prescription->load([
             'consultation.encounter.patient',
+            'consultation.encounter.program',
             'prescribedBy:id,name',
             'items.drug',
             'items.dispensations.dispensingOfficer:id,name',
         ]);
 
-        return view('pharmacy.prescription', compact('prescription', 'facilityId', 'facility'));
+        $programId = $prescription->consultation?->encounter?->program_id ?? null;
+
+        return view('pharmacy.prescription', compact('prescription', 'facilityId', 'facility', 'programId'));
     }
 
     /**
@@ -141,6 +144,8 @@ class PharmacyController extends Controller
         if ($encounter && $encounter->status === \App\Models\Encounter::STATUS_COMPLETED) {
             return response()->json(['error' => 'Cannot modify: Encounter has been completed.'], 422);
         }
+
+        $programId = $encounter->program_id ?? null;
 
         DB::beginTransaction();
         try {
@@ -168,7 +173,7 @@ class PharmacyController extends Controller
                     
                     if ($difference > 0) {
                         // Need to dispense more
-                        $availableStock = $drug->totalStockInFacility($facilityId);
+                        $availableStock = $drug->totalStockInFacility($facilityId, $programId);
                         if ($availableStock < $difference) {
                             return response()->json(['error' => "Insufficient stock. Available: {$availableStock}, Additional needed: {$difference}."], 422);
                         }
@@ -186,7 +191,7 @@ class PharmacyController extends Controller
                             'dispensing_officer_id' => Auth::id(),
                         ]);
                         
-                        $this->deductStock($drug, $difference, $facilityId);
+                        $this->deductStock($drug, $difference, $facilityId, $programId);
                         
                         // Log additional dispensing
                         if ($encounter) {
@@ -203,7 +208,7 @@ class PharmacyController extends Controller
                         $returnQty = abs($difference);
                         
                         // Add stock back using reverse FEFO (add to most recent batch)
-                        $this->addStock($drug, $returnQty, $facilityId);
+                        $this->addStock($drug, $returnQty, $facilityId, $programId);
                         
                         // Create a negative dispensation record to track the return
                         PharmacyDispensation::create([
@@ -238,7 +243,7 @@ class PharmacyController extends Controller
                         return response()->json(['error' => 'Quantity must be greater than 0.'], 422);
                     }
                     
-                    $availableStock = $drug->totalStockInFacility($facilityId);
+                    $availableStock = $drug->totalStockInFacility($facilityId, $programId);
                     if ($availableStock < $quantityToDispense) {
                         return response()->json(['error' => "Insufficient stock. Available: {$availableStock}, Required: {$quantityToDispense}."], 422);
                     }
@@ -256,7 +261,7 @@ class PharmacyController extends Controller
                         'dispensing_officer_id' => Auth::id(),
                     ]);
                     
-                    $this->deductStock($drug, $quantityToDispense, $facilityId);
+                    $this->deductStock($drug, $quantityToDispense, $facilityId, $programId);
                     
                     // Pharmacist qty is the real qty - update prescribed quantity
                     $totalDispensed = $alreadyDispensed + $quantityToDispense;
@@ -282,7 +287,7 @@ class PharmacyController extends Controller
                 
                 if ($totalDispensed > 0 && $item->drug) {
                     // Add stock back using reverse FEFO (add to most recent batch)
-                    $this->addStock($item->drug, $totalDispensed, $facilityId);
+                    $this->addStock($item->drug, $totalDispensed, $facilityId, $programId);
                     
                     // Create a negative dispensation record to track the return
                     PharmacyDispensation::create([
@@ -325,7 +330,7 @@ class PharmacyController extends Controller
                 'new_status' => $item->dispensing_status,
                 'total_dispensed' => $item->dispensations->sum('quantity_dispensed'),
                 'prescribed_quantity' => $item->quantity, // This is now the updated quantity
-                'remaining_stock' => $item->drug ? $item->drug->totalStockInFacility($facilityId) : 0,
+                'remaining_stock' => $item->drug ? $item->drug->totalStockInFacility($facilityId, $programId) : 0,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -354,6 +359,8 @@ class PharmacyController extends Controller
             return response()->json(['error' => 'Cannot modify: Encounter has been completed.'], 422);
         }
 
+        $programId = $encounter->program_id ?? null;
+
         DB::beginTransaction();
         try {
             $dispensed = [];
@@ -377,7 +384,7 @@ class PharmacyController extends Controller
                 }
 
                 $qty   = (int) $entry['qty'];
-                $stock = $drug->totalStockInFacility($facilityId);
+                $stock = $drug->totalStockInFacility($facilityId, $programId);
                 if ($stock < $qty) {
                     $errors[] = "Insufficient stock for {$drug->name}. Available: {$stock}, Requested: {$qty}.";
                     continue;
@@ -396,7 +403,7 @@ class PharmacyController extends Controller
                     'dispensing_officer_id' => Auth::id(),
                 ]);
 
-                $this->deductStock($drug, $qty, $facilityId);
+                $this->deductStock($drug, $qty, $facilityId, $programId);
 
                 $alreadyDispensed = $item->dispensations->sum('quantity_dispensed');
                 $totalDispensed   = $alreadyDispensed + $qty;
@@ -522,19 +529,20 @@ class PharmacyController extends Controller
 
     // ── Private Helpers ───────────────────────────────────────────────────────
 
-    private function deductStock(Drug $drug, int $quantity, $facilityId): int
+    private function deductStock(Drug $drug, int $quantity, $facilityId, $programId = null): int
     {
-        return $drug->deductStock($quantity, $facilityId);
+        return $drug->deductStock($quantity, $facilityId, $programId);
     }
     
     /**
      * Add stock back to inventory (reverse of deductStock)
      */
-    private function addStock(Drug $drug, int $quantity, $facilityId): int
+    private function addStock(Drug $drug, int $quantity, $facilityId, $programId = null): int
     {
-        // Find the most recent stock batch for this drug in this facility
+        // Find the most recent stock batch for this drug in this facility and program
         $stock = DrugStock::where('drug_id', $drug->id)
             ->where('facility_id', $facilityId)
+            ->when($programId, fn($q) => $q->where('program_id', $programId))
             ->where('status', 'approved')
             ->where('quantity_remaining', '>', 0)
             ->latest('stocked_at')
@@ -550,6 +558,7 @@ class PharmacyController extends Controller
         DrugStock::create([
             'drug_id' => $drug->id,
             'facility_id' => $facilityId,
+            'program_id' => $programId,
             'batch_number' => 'RETURN-' . date('YmdHis'),
             'expiry_date' => now()->addYears(2), // Default 2 years for returns
             'quantity_received' => $quantity,

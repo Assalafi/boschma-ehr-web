@@ -343,33 +343,24 @@ class DoctorController extends Controller
         $q = trim($request->input('q', ''));
         $exclude = (array) $request->input('exclude', []);
         $facilityId = Auth::user()->facility_id;
-
-        // Debug logging
-        \Illuminate\Support\Facades\Log::info('Drug search called', [
-            'query' => $q,
-            'facility_id' => $facilityId,
-            'exclude' => $exclude,
-            'query_length' => strlen($q)
-        ]);
+        $programId = $request->input('program_id');
 
         if (strlen($q) < 4) {
             return response()->json([]);
         }
 
-        // Temporarily remove facility filter to test
         $drugs = Drug::where(function($query) use ($q) {
                 $query->where('name', 'LIKE', "%{$q}%")
                       ->orWhere('strength', 'LIKE', "%{$q}%")
                       ->orWhere('dosage_form', 'LIKE', "%{$q}%")
                       ->orWhere('description', 'LIKE', "%{$q}%");
             })
-            // ->when($facilityId, fn($qb) => $qb->where('facility_id', $facilityId))
             ->whereNotIn('id', $exclude)
             ->orderBy('name')
             ->limit(25)
             ->get(['id','name','dosage_form','strength','unit','unit_price','description','facility_id'])
-            ->map(function($drug) use ($facilityId) {
-                $stock = $drug->totalStockInFacility($facilityId);
+            ->map(function($drug) use ($facilityId, $programId) {
+                $stock = $drug->totalStockInFacility($facilityId, $programId);
                 $status = $stock === 0 ? 'out' : ($stock < 10 ? 'low' : 'in');
                 return [
                     'id'          => $drug->id,
@@ -384,9 +375,6 @@ class DoctorController extends Controller
                     'facility_id' => $drug->facility_id,
                 ];
             });
-
-        // Debug logging
-        \Illuminate\Support\Facades\Log::info('Drug search results', ['count' => $drugs->count()]);
 
         return response()->json($drugs);
     }

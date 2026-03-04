@@ -127,6 +127,7 @@ const _proceduresSaveUrl = '{{ route("doctor.consultation.update-procedures", $e
 const _proceduresCsrf = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 const _step4Csrf        = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 const _drugSearchUrl    = '{{ route("doctor.consultation.drugs.search") }}';
+const _encounterProgramId = '{{ $encounter->program_id ?? '' }}';
 
 // ── Drug Search & Prescription List ──────────────────────────────────────────
 
@@ -336,6 +337,7 @@ async function _fetchDrugs(q) {
     
     const excludeIds = [..._selectedDrugs.keys()];
     const params = new URLSearchParams({ q });
+    if (_encounterProgramId) params.append('program_id', _encounterProgramId);
     excludeIds.forEach(id => params.append('exclude[]', id));
     
     console.log('Fetching drugs:', { url: `${_drugSearchUrl}?${params}`, q, excludeIds });
