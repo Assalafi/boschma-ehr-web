@@ -567,7 +567,14 @@ class PharmacyController extends Controller
 
         if ($request->filled('stock_status')) {
             $status = $request->stock_status;
-            if ($status === 'out') {
+            if ($status === 'in') {
+                $query->whereHas('stocks', fn($q) =>
+                    $q->where('facility_id', $facilityId)
+                      ->where('status', 'approved')
+                      ->where('quantity_remaining', '>', 0)
+                      ->when($programId, fn($q2) => $q2->where('program_id', $programId))
+                );
+            } elseif ($status === 'out') {
                 $query->whereDoesntHave('stocks', fn($q) =>
                     $q->where('facility_id', $facilityId)
                       ->where('status', 'approved')

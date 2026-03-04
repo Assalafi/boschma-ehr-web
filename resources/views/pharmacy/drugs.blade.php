@@ -41,6 +41,11 @@
 .expiry-row { font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 4px; margin-top: 2px; }
 .batch-detail { font-size: 11px; color: #64748b; line-height: 1.6; }
 .pharm-nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+.pharm-pagination { display:flex; align-items:center; justify-content:center; gap:4px; padding:12px 20px; border-top:1px solid #f1f5f9; }
+.pharm-page-btn { display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 8px; border:1.5px solid var(--pharm-border); border-radius:6px; font-size:12px; font-weight:600; color:#475569; background:#fff; cursor:pointer; transition:all .15s; text-decoration:none; }
+.pharm-page-btn:hover { border-color:#cbd5e1; background:#f8fafc; color:#475569; text-decoration:none; }
+.pharm-page-btn.active { background:var(--pharm-primary); border-color:var(--pharm-primary); color:#fff; }
+.pharm-page-btn:disabled { opacity:.4; cursor:not-allowed; }
 .pharm-nav a { padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none; color: #64748b; background: #f1f5f9; transition: all .15s; }
 .pharm-nav a:hover { background: #e2e8f0; }
 .pharm-nav a.active { background: var(--pharm-primary); color: #fff; }
@@ -175,6 +180,7 @@
       </div>
       <select name="stock_status" class="form-select form-select-sm" style="width:auto;border-radius:10px;font-size:12px;border-color:var(--pharm-border)">
         <option value="">All Stock Levels</option>
+        <option value="in" {{ request('stock_status') == 'in' ? 'selected' : '' }}>In Stock</option>
         <option value="out" {{ request('stock_status') == 'out' ? 'selected' : '' }}>Out of Stock</option>
         <option value="low" {{ request('stock_status') == 'low' ? 'selected' : '' }}>Low Stock (&lt;10)</option>
       </select>
@@ -281,8 +287,51 @@
     </table>
   </div>
   @if($drugs->hasPages())
-  <div style="padding:14px 20px;border-top:1px solid var(--pharm-border)">
-    {{ $drugs->links() }}
+  <div class="pharm-pagination">
+    {{-- Previous --}}
+    @if($drugs->onFirstPage())
+      <span class="pharm-page-btn" disabled>
+        <span class="material-symbols-outlined" style="font-size:14px">chevron_left</span>
+      </span>
+    @else
+      <a href="{{ $drugs->previousPageUrl() }}" class="pharm-page-btn">
+        <span class="material-symbols-outlined" style="font-size:14px">chevron_left</span>
+      </a>
+    @endif
+
+    {{-- Page Numbers --}}
+    @foreach($elements = $drugs->elements() as $element)
+      @if(is_string($element))
+        <span class="pharm-page-btn" disabled>{{ $element }}</span>
+      @elseif(is_array($element))
+        {{-- First page separator --}}
+        @if($element['page'] == 1 && !$drugs->onFirstPage())
+          <a href="{{ $drugs->url(1) }}" class="pharm-page-btn">1</a>
+          <span class="pharm-page-btn" disabled>...</span>
+        @else
+          {{-- Last page separator --}}
+          @if($element['page'] == $drugs->lastPage() && !$drugs->onLastPage())
+            <span class="pharm-page-btn" disabled>...</span>
+            <a href="{{ $drugs->url($drugs->lastPage()) }}" class="pharm-page-btn">{{ $drugs->lastPage() }}</a>
+          @endif
+        @endif
+      @else
+        <a href="{{ $drugs->url($element) }}" class="pharm-page-btn {{ $drugs->currentPage() == $element ? 'active' : '' }}">
+          {{ $element }}
+        </a>
+      @endif
+    @endforeach
+
+    {{-- Next --}}
+    @if($drugs->hasMorePages())
+      <a href="{{ $drugs->nextPageUrl() }}" class="pharm-page-btn">
+        <span class="material-symbols-outlined" style="font-size:14px">chevron_right</span>
+      </a>
+    @else
+      <span class="pharm-page-btn" disabled>
+        <span class="material-symbols-outlined" style="font-size:14px">chevron_right</span>
+      </span>
+    @endif
   </div>
   @endif
 </div>
