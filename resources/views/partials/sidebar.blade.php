@@ -150,6 +150,20 @@
                             <span class="title">Dispense History</span>
                         </a>
                     </li>
+                    <li class="menu-item">
+                        <a href="{{ route('pharmacy.drugs') }}"
+                            class="menu-link {{ Request::is('pharmacy/drugs*') ? 'active' : '' }}">
+                            <span class="material-symbols-outlined menu-icon">medication</span>
+                            <span class="title">Drug Inventory</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="{{ route('pharmacy.reports') }}"
+                            class="menu-link {{ Request::is('pharmacy/reports*') ? 'active' : '' }}">
+                            <span class="material-symbols-outlined menu-icon">analytics</span>
+                            <span class="title">Reports</span>
+                        </a>
+                    </li>
                 @endif
             @endauth
 
