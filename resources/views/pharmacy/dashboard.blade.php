@@ -119,21 +119,21 @@
     </a>
   </div>
   <div class="col-lg-3 col-sm-6">
-    <a href="{{ route('stock-management.index') }}" class="action-card">
+    <a href="{{ route('pharmacy.drugs') }}" class="action-card">
       <div class="action-icon" style="background:#dbeafe">
-        <span class="material-symbols-outlined" style="color:#2563eb">warehouse</span>
+        <span class="material-symbols-outlined" style="color:#2563eb">medication</span>
       </div>
-      <div class="action-label">Stock Management</div>
-      <div class="action-desc">Manage drug inventory & stock</div>
+      <div class="action-label">Drug Inventory</div>
+      <div class="action-desc">View all drugs & stock by program</div>
     </a>
   </div>
   <div class="col-lg-3 col-sm-6">
-    <a href="{{ route('dashboard') }}" class="action-card">
-      <div class="action-icon" style="background:var(--pharm-primary-light)">
-        <span class="material-symbols-outlined" style="color:var(--pharm-primary)">dashboard</span>
+    <a href="{{ route('pharmacy.reports') }}" class="action-card">
+      <div class="action-icon" style="background:#ede9fe">
+        <span class="material-symbols-outlined" style="color:#7c3aed">analytics</span>
       </div>
-      <div class="action-label">Main Dashboard</div>
-      <div class="action-desc">Return to system overview</div>
+      <div class="action-label">Reports & Analytics</div>
+      <div class="action-desc">Performance, revenue & trends</div>
     </a>
   </div>
 </div>

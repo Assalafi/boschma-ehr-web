@@ -527,6 +527,255 @@ class PharmacyController extends Controller
         return redirect()->route('stock-management.index');
     }
 
+    // ── Drugs Inventory ──────────────────────────────────────────────────────
+
+    public function drugs(Request $request)
+    {
+        $user       = Auth::user();
+        $facilityId = $user->facility_id;
+
+        // All programs that have stock in this facility
+        $programs = \App\Models\Program::whereHas('drugStocks', fn($q) =>
+            $q->where('facility_id', $facilityId)
+        )->orderBy('name')->get();
+
+        // Selected program filter
+        $programId = $request->input('program_id');
+
+        // Build drug query
+        $query = Drug::where('facility_id', $facilityId)
+            ->with(['stocks' => fn($q) =>
+                $q->where('facility_id', $facilityId)
+                  ->where('status', 'approved')
+                  ->when($programId, fn($q2) => $q2->where('program_id', $programId))
+            ]);
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(fn($q) =>
+                $q->where('name', 'LIKE', "%{$s}%")
+                  ->orWhere('dosage_form', 'LIKE', "%{$s}%")
+                  ->orWhere('strength', 'LIKE', "%{$s}%")
+            );
+        }
+
+        if ($request->filled('stock_status')) {
+            $status = $request->stock_status;
+            if ($status === 'out') {
+                $query->whereDoesntHave('stocks', fn($q) =>
+                    $q->where('facility_id', $facilityId)
+                      ->where('status', 'approved')
+                      ->where('quantity_remaining', '>', 0)
+                      ->when($programId, fn($q2) => $q2->where('program_id', $programId))
+                );
+            } elseif ($status === 'low') {
+                $query->whereHas('stocks', fn($q) =>
+                    $q->where('facility_id', $facilityId)
+                      ->where('status', 'approved')
+                      ->where('quantity_remaining', '>', 0)
+                      ->when($programId, fn($q2) => $q2->where('program_id', $programId))
+                )->get()->filter(fn($d) => $d->totalStockInFacility($facilityId, $programId) < 10 && $d->totalStockInFacility($facilityId, $programId) > 0);
+            }
+        }
+
+        $drugs = $query->orderBy('name')->paginate(25)->appends($request->query());
+
+        // Summary stats
+        $totalDrugs = Drug::where('facility_id', $facilityId)->count();
+
+        $inStockCount = Drug::where('facility_id', $facilityId)
+            ->whereHas('stocks', fn($q) =>
+                $q->where('facility_id', $facilityId)
+                  ->where('status', 'approved')
+                  ->where('quantity_remaining', '>', 0)
+            )->count();
+
+        $outOfStockCount = $totalDrugs - $inStockCount;
+
+        $lowStockCount = 0;
+        $expiringCount = 0;
+
+        // Low stock: drugs with stock between 1-9
+        $allDrugsWithStock = Drug::where('facility_id', $facilityId)
+            ->whereHas('stocks', fn($q) =>
+                $q->where('facility_id', $facilityId)
+                  ->where('status', 'approved')
+                  ->where('quantity_remaining', '>', 0)
+            )->get();
+        
+        foreach ($allDrugsWithStock as $d) {
+            $qty = $d->totalStockInFacility($facilityId);
+            if ($qty > 0 && $qty < 10) $lowStockCount++;
+        }
+
+        // Expiring within 90 days
+        $expiringCount = DrugStock::where('facility_id', $facilityId)
+            ->where('status', 'approved')
+            ->where('quantity_remaining', '>', 0)
+            ->whereBetween('expiry_date', [now(), now()->addDays(90)])
+            ->distinct('drug_id')
+            ->count('drug_id');
+
+        // Total stock value
+        $totalStockValue = DrugStock::where('facility_id', $facilityId)
+            ->where('status', 'approved')
+            ->where('quantity_remaining', '>', 0)
+            ->selectRaw('SUM(quantity_remaining * COALESCE(unit_cost, 0)) as total')
+            ->value('total') ?? 0;
+
+        // Stock by program
+        $stockByProgram = DrugStock::where('facility_id', $facilityId)
+            ->where('status', 'approved')
+            ->where('quantity_remaining', '>', 0)
+            ->join('programs', 'drug_stocks.program_id', '=', 'programs.id')
+            ->selectRaw('programs.name as program_name, programs.id as program_id, COUNT(DISTINCT drug_id) as drug_count, SUM(quantity_remaining) as total_qty')
+            ->groupBy('programs.id', 'programs.name')
+            ->get();
+
+        return view('pharmacy.drugs', compact(
+            'drugs', 'programs', 'programId',
+            'totalDrugs', 'inStockCount', 'outOfStockCount', 'lowStockCount',
+            'expiringCount', 'totalStockValue', 'stockByProgram'
+        ));
+    }
+
+    // ── Reports ─────────────────────────────────────────────────────────────
+
+    public function reports(Request $request)
+    {
+        $user       = Auth::user();
+        $facilityId = $user->facility_id;
+        $facility   = Facility::find($facilityId);
+
+        $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
+        $dateTo   = $request->input('date_to', now()->toDateString());
+
+        // ── Overview Stats ──
+        $totalDispensations = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->count();
+
+        $totalRevenue = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->sum('cost_of_medication');
+
+        $totalCopayment = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->sum('copayment_amount');
+
+        $totalItemsDispensed = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->where('quantity_dispensed', '>', 0)
+            ->sum('quantity_dispensed');
+
+        $uniquePatients = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->join('prescription_items', 'pharmacy_dispensations.prescription_item_id', '=', 'prescription_items.id')
+            ->join('prescriptions', 'prescription_items.prescription_id', '=', 'prescriptions.id')
+            ->join('consultations', 'prescriptions.consultation_id', '=', 'consultations.id')
+            ->join('encounters', 'consultations.encounter_id', '=', 'encounters.id')
+            ->distinct('encounters.patient_id')
+            ->count('encounters.patient_id');
+
+        // ── Pharmacist Performance ──
+        $pharmacistPerformance = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->where('quantity_dispensed', '>', 0)
+            ->join('users', 'pharmacy_dispensations.dispensing_officer_id', '=', 'users.id')
+            ->selectRaw('
+                users.id as user_id,
+                users.name as pharmacist_name,
+                COUNT(*) as total_dispensations,
+                SUM(quantity_dispensed) as total_items,
+                SUM(cost_of_medication) as total_revenue,
+                SUM(copayment_amount) as total_copayment,
+                COUNT(DISTINCT DATE(dispensing_date_time)) as active_days,
+                MIN(dispensing_date_time) as first_dispense,
+                MAX(dispensing_date_time) as last_dispense
+            ')
+            ->groupBy('users.id', 'users.name')
+            ->orderByDesc('total_dispensations')
+            ->get();
+
+        // ── Top Dispensed Drugs ──
+        $topDrugs = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->where('quantity_dispensed', '>', 0)
+            ->join('prescription_items', 'pharmacy_dispensations.prescription_item_id', '=', 'prescription_items.id')
+            ->join('drugs', 'prescription_items.drug_id', '=', 'drugs.id')
+            ->selectRaw('
+                drugs.id as drug_id,
+                drugs.name as drug_name,
+                drugs.dosage_form,
+                drugs.strength,
+                SUM(quantity_dispensed) as total_dispensed,
+                SUM(cost_of_medication) as total_revenue,
+                COUNT(DISTINCT pharmacy_dispensations.id) as dispense_count
+            ')
+            ->groupBy('drugs.id', 'drugs.name', 'drugs.dosage_form', 'drugs.strength')
+            ->orderByDesc('total_dispensed')
+            ->limit(20)
+            ->get();
+
+        // ── Revenue by Payment Method ──
+        $revenueByPayment = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->where('quantity_dispensed', '>', 0)
+            ->selectRaw('
+                COALESCE(payment_method, "Unknown") as method,
+                COUNT(*) as count,
+                SUM(cost_of_medication) as revenue,
+                SUM(copayment_amount) as copayment
+            ')
+            ->groupBy('payment_method')
+            ->orderByDesc('revenue')
+            ->get();
+
+        // ── Daily Trend (last 30 days) ──
+        $dailyTrend = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->where('quantity_dispensed', '>', 0)
+            ->selectRaw('DATE(dispensing_date_time) as date, COUNT(*) as count, SUM(cost_of_medication) as revenue, SUM(quantity_dispensed) as items')
+            ->groupByRaw('DATE(dispensing_date_time)')
+            ->orderBy('date')
+            ->get();
+
+        // ── Revenue by Program ──
+        $revenueByProgram = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
+            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+                $q->where('facility_id', $facilityId))
+            ->where('quantity_dispensed', '>', 0)
+            ->join('prescription_items', 'pharmacy_dispensations.prescription_item_id', '=', 'prescription_items.id')
+            ->join('prescriptions', 'prescription_items.prescription_id', '=', 'prescriptions.id')
+            ->join('consultations', 'prescriptions.consultation_id', '=', 'consultations.id')
+            ->join('encounters', 'consultations.encounter_id', '=', 'encounters.id')
+            ->leftJoin('programs', 'encounters.program_id', '=', 'programs.id')
+            ->selectRaw('
+                COALESCE(programs.name, "No Program") as program_name,
+                COUNT(*) as count,
+                SUM(quantity_dispensed) as items,
+                SUM(cost_of_medication) as revenue
+            ')
+            ->groupByRaw('COALESCE(programs.name, "No Program")')
+            ->orderByDesc('revenue')
+            ->get();
+
+        return view('pharmacy.reports', compact(
+            'dateFrom', 'dateTo', 'facility',
+            'totalDispensations', 'totalRevenue', 'totalCopayment', 'totalItemsDispensed', 'uniquePatients',
+            'pharmacistPerformance', 'topDrugs', 'revenueByPayment', 'dailyTrend', 'revenueByProgram'
+        ));
+    }
+
     // ── Private Helpers ───────────────────────────────────────────────────────
 
     private function deductStock(Drug $drug, int $quantity, $facilityId, $programId = null): int

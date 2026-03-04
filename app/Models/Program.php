@@ -25,4 +25,9 @@ class Program extends Model
     {
         return $this->hasMany(Encounter::class);
     }
+
+    public function drugStocks()
+    {
+        return $this->hasMany(DrugStock::class);
+    }
 }

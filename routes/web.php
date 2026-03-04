@@ -190,6 +190,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/item/{item}/dispense', [PharmacyController::class, 'dispenseItem'])->name('item.dispense');
         Route::post('/prescription/{prescription}/bulk-dispense', [PharmacyController::class, 'dispenseBulk'])->name('prescription.bulk-dispense');
         Route::get('/history', [PharmacyController::class, 'history'])->name('history');
+        Route::get('/drugs', [PharmacyController::class, 'drugs'])->name('drugs');
+        Route::get('/reports', [PharmacyController::class, 'reports'])->name('reports');
     });
     
     // Dispensation Routes (legacy — redirect to pharmacy.queue)
