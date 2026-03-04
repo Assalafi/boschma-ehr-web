@@ -40,6 +40,11 @@ class Prescription extends Model
         return $this->belongsTo(ClinicalConsultation::class, 'clinical_consultation_id');
     }
 
+    public function clinicalConsultation()
+    {
+        return $this->belongsTo(ClinicalConsultation::class, 'clinical_consultation_id');
+    }
+
     public function items()
     {
         return $this->hasMany(PrescriptionItem::class, 'prescription_id');
