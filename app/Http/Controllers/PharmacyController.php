@@ -686,39 +686,39 @@ class PharmacyController extends Controller
 
         // ── Overview Stats ──
         $totalDispensations = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->count();
 
         $totalRevenue = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->sum('cost_of_medication');
 
         $totalCopayment = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->sum('copayment_amount');
 
         $totalItemsDispensed = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->where('quantity_dispensed', '>', 0)
             ->sum('quantity_dispensed');
 
         $uniquePatients = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->join('prescription_items', 'pharmacy_dispensations.prescription_item_id', '=', 'prescription_items.id')
             ->join('prescriptions', 'prescription_items.prescription_id', '=', 'prescriptions.id')
-            ->join('consultations', 'prescriptions.consultation_id', '=', 'consultations.id')
-            ->join('encounters', 'consultations.encounter_id', '=', 'encounters.id')
+            ->join('clinical_consultations', 'prescriptions.clinical_consultation_id', '=', 'clinical_consultations.id')
+            ->join('encounters', 'clinical_consultations.encounter_id', '=', 'encounters.id')
             ->distinct('encounters.patient_id')
             ->count('encounters.patient_id');
 
         // ── Pharmacist Performance ──
         $pharmacistPerformance = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->where('quantity_dispensed', '>', 0)
             ->join('users', 'pharmacy_dispensations.dispensing_officer_id', '=', 'users.id')
@@ -739,7 +739,7 @@ class PharmacyController extends Controller
 
         // ── Top Dispensed Drugs ──
         $topDrugs = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->where('quantity_dispensed', '>', 0)
             ->join('prescription_items', 'pharmacy_dispensations.prescription_item_id', '=', 'prescription_items.id')
@@ -760,7 +760,7 @@ class PharmacyController extends Controller
 
         // ── Revenue by Payment Method ──
         $revenueByPayment = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->where('quantity_dispensed', '>', 0)
             ->selectRaw('
@@ -775,7 +775,7 @@ class PharmacyController extends Controller
 
         // ── Daily Trend (last 30 days) ──
         $dailyTrend = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->where('quantity_dispensed', '>', 0)
             ->selectRaw('DATE(dispensing_date_time) as date, COUNT(*) as count, SUM(cost_of_medication) as revenue, SUM(quantity_dispensed) as items')
@@ -785,13 +785,13 @@ class PharmacyController extends Controller
 
         // ── Revenue by Program ──
         $revenueByProgram = PharmacyDispensation::whereBetween('dispensing_date_time', [$dateFrom, $dateTo . ' 23:59:59'])
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('prescriptionItem.prescription.clinicalConsultation.encounter', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->where('quantity_dispensed', '>', 0)
             ->join('prescription_items', 'pharmacy_dispensations.prescription_item_id', '=', 'prescription_items.id')
             ->join('prescriptions', 'prescription_items.prescription_id', '=', 'prescriptions.id')
-            ->join('consultations', 'prescriptions.consultation_id', '=', 'consultations.id')
-            ->join('encounters', 'consultations.encounter_id', '=', 'encounters.id')
+            ->join('clinical_consultations', 'prescriptions.clinical_consultation_id', '=', 'clinical_consultations.id')
+            ->join('encounters', 'clinical_consultations.encounter_id', '=', 'encounters.id')
             ->leftJoin('programs', 'encounters.program_id', '=', 'programs.id')
             ->selectRaw('
                 COALESCE(programs.name, "No Program") as program_name,
