@@ -39,7 +39,7 @@
                                placeholder="Enter name, BOSCHMA ID, NIN, or phone number..." 
                                value="{{ $query ?? '' }}" autofocus>
                     </div>
-                    <small class="text-muted">Only beneficiaries registered at your facility will be shown</small>
+                    <small class="text-muted">Beneficiaries registered at your facility and referred patients will be shown</small>
                 </div>
                 <div class="col-md-4">
                     <button type="submit" class="btn btn-primary btn-lg w-100">
@@ -97,7 +97,9 @@
                         <td>{{ $beneficiary->phone ?? 'N/A' }}</td>
                         <td>{{ $beneficiary->program->name ?? 'N/A' }}</td>
                         <td>
-                            @if($beneficiary->status === 'Active')
+                            @if($beneficiary->status === 'Referred')
+                                <span class="badge bg-warning">Referred</span>
+                            @elseif($beneficiary->status === 'Active')
                                 <span class="badge bg-success">Active</span>
                             @else
                                 <span class="badge bg-secondary">{{ $beneficiary->status }}</span>
@@ -114,7 +116,7 @@
                         <td colspan="7" class="text-center py-5 text-muted">
                             <span class="material-symbols-outlined fs-1 d-block mb-2">search_off</span>
                             No beneficiaries found matching "{{ $query }}"
-                            <br><small>Make sure the beneficiary is registered at your facility</small>
+                            <br><small>Make sure the beneficiary is registered at your facility or has been referred here</small>
                         </td>
                     </tr>
                     @endforelse

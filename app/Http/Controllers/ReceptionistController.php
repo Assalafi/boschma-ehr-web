@@ -24,6 +24,19 @@ class ReceptionistController extends Controller
         return Auth::user()->facility_id;
     }
 
+    protected function hasReferralToFacility($patient, $facilityId)
+    {
+        if (!$patient) return false;
+        return DB::table('service_referrals')
+            ->join('encounters', 'service_referrals.encounter_id', '=', 'encounters.id')
+            ->where('encounters.patient_id', $patient->id)
+            ->where('service_referrals.to_facility_id', $facilityId)
+            ->where('service_referrals.referral_type', 'patient')
+            ->where('service_referrals.status', 'pending')
+            ->whereNull('service_referrals.service_item_id')
+            ->exists();
+    }
+
     public function index()
     {
         return $this->dashboard();
@@ -179,6 +192,100 @@ class ReceptionistController extends Controller
                     'original' => $c,
                 ]);
 
+            // Search referred patients (from other facilities with pending referrals TO this facility)
+            $referredPatientIds = DB::table('service_referrals')
+                ->join('encounters', 'service_referrals.encounter_id', '=', 'encounters.id')
+                ->where('service_referrals.to_facility_id', $facilityId)
+                ->where('service_referrals.referral_type', 'patient')
+                ->where('service_referrals.status', 'pending')
+                ->whereNull('service_referrals.service_item_id')
+                ->pluck('encounters.patient_id');
+
+            if ($referredPatientIds->isNotEmpty()) {
+                // Search beneficiaries from other facilities that have been referred here
+                $referredBeneficiaries = Beneficiary::where('facility_id', '!=', $facilityId)
+                    ->whereHas('patient', fn($q) => $q->whereIn('id', $referredPatientIds))
+                    ->where(function($q) use ($query) {
+                        $q->where('fullname', 'like', "%{$query}%")
+                          ->orWhere('boschma_no', 'like', "%{$query}%")
+                          ->orWhere('nin', 'like', "%{$query}%")
+                          ->orWhere('phone_no', 'like', "%{$query}%");
+                    })
+                    ->with(['patient', 'program'])
+                    ->take(10)
+                    ->get()
+                    ->map(fn($b) => (object)[
+                        'id' => $b->id, 'type' => 'beneficiary',
+                        'name' => $b->fullname, 'boschma_no' => $b->boschma_no,
+                        'gender' => $b->gender, 'dob' => $b->date_of_birth,
+                        'nin' => $b->nin, 'phone' => $b->phone_no,
+                        'photo' => $b->photo, 'status' => 'Referred',
+                        'program_name' => $b->program->name ?? 'N/A',
+                        'facility_id' => $b->facility_id,
+                        'program_id' => $b->program_id,
+                        'patient' => $b->patient,
+                        'original' => $b,
+                        'is_referral' => true,
+                    ]);
+
+                $beneficiaries = $beneficiaries->concat($referredBeneficiaries);
+
+                // Search spouses from other facilities that have been referred here
+                $referredSpouses = Spouse::where('facility_id', '!=', $facilityId)
+                    ->whereHas('patient', fn($q) => $q->whereIn('id', $referredPatientIds))
+                    ->where(function($q) use ($query) {
+                        $q->where('name', 'like', "%{$query}%")
+                          ->orWhere('boschma_no', 'like', "%{$query}%")
+                          ->orWhere('nin', 'like', "%{$query}%")
+                          ->orWhere('phone', 'like', "%{$query}%");
+                    })
+                    ->with(['beneficiary.program', 'patient'])
+                    ->take(10)
+                    ->get()
+                    ->map(fn($s) => (object)[
+                        'id' => $s->id, 'type' => 'spouse',
+                        'name' => $s->name, 'boschma_no' => $s->boschma_no,
+                        'gender' => $s->gender, 'dob' => $s->dob,
+                        'nin' => $s->nin, 'phone' => $s->phone,
+                        'photo' => $s->photo, 'status' => 'Referred',
+                        'program_name' => $s->beneficiary->program->name ?? 'N/A',
+                        'facility_id' => $s->facility_id ?? $s->beneficiary->facility_id,
+                        'program_id' => $s->beneficiary->program_id ?? null,
+                        'patient' => $s->patient,
+                        'original' => $s,
+                        'is_referral' => true,
+                    ]);
+
+                $spouses = $spouses->concat($referredSpouses);
+
+                // Search children from other facilities that have been referred here
+                $referredChildren = Child::where('facility_id', '!=', $facilityId)
+                    ->whereHas('patient', fn($q) => $q->whereIn('id', $referredPatientIds))
+                    ->where(function($q) use ($query) {
+                        $q->where('name', 'like', "%{$query}%")
+                          ->orWhere('boschma_no', 'like', "%{$query}%")
+                          ->orWhere('nin', 'like', "%{$query}%");
+                    })
+                    ->with(['beneficiary.program', 'patient'])
+                    ->take(10)
+                    ->get()
+                    ->map(fn($c) => (object)[
+                        'id' => $c->id, 'type' => 'child',
+                        'name' => $c->name, 'boschma_no' => $c->boschma_no,
+                        'gender' => $c->gender, 'dob' => $c->dob,
+                        'nin' => $c->nin, 'phone' => null,
+                        'photo' => $c->photo, 'status' => 'Referred',
+                        'program_name' => $c->beneficiary->program->name ?? 'N/A',
+                        'facility_id' => $c->facility_id ?? $c->beneficiary->facility_id,
+                        'program_id' => $c->beneficiary->program_id ?? null,
+                        'patient' => $c->patient,
+                        'original' => $c,
+                        'is_referral' => true,
+                    ]);
+
+                $children = $children->concat($referredChildren);
+            }
+
             $enrollees = $beneficiaries->concat($spouses)->concat($children)->take(20);
         }
         
@@ -202,7 +309,7 @@ class ReceptionistController extends Controller
         switch ($type) {
             case 'spouse':
                 $enrollee = Spouse::with(['beneficiary.program', 'patient'])->findOrFail($id);
-                if ($enrollee->facility_id !== $facilityId) abort(403);
+                if ($enrollee->facility_id !== $facilityId && !$this->hasReferralToFacility($enrollee->patient, $facilityId)) abort(403);
                 $beneficiary = (object)[
                     'id' => $enrollee->id, 'type' => 'spouse',
                     'fullname' => $enrollee->name, 'boschma_no' => $enrollee->boschma_no,
@@ -217,7 +324,7 @@ class ReceptionistController extends Controller
                 break;
             case 'child':
                 $enrollee = Child::with(['beneficiary.program', 'patient'])->findOrFail($id);
-                if ($enrollee->facility_id !== $facilityId) abort(403);
+                if ($enrollee->facility_id !== $facilityId && !$this->hasReferralToFacility($enrollee->patient, $facilityId)) abort(403);
                 $beneficiary = (object)[
                     'id' => $enrollee->id, 'type' => 'child',
                     'fullname' => $enrollee->name, 'boschma_no' => $enrollee->boschma_no,
@@ -232,7 +339,7 @@ class ReceptionistController extends Controller
                 break;
             default: // beneficiary
                 $enrollee = Beneficiary::with(['patient', 'program', 'spouse', 'children'])->findOrFail($id);
-                if ($enrollee->facility_id !== $facilityId) abort(403);
+                if ($enrollee->facility_id !== $facilityId && !$this->hasReferralToFacility($enrollee->patient, $facilityId)) abort(403);
                 $beneficiary = (object)[
                     'id' => $enrollee->id, 'type' => 'beneficiary',
                     'fullname' => $enrollee->fullname, 'boschma_no' => $enrollee->boschma_no,
