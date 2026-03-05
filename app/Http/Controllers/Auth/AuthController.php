@@ -39,6 +39,20 @@ class AuthController extends Controller
             
             $user = Auth::user();
             
+            // Block users with only Admin role
+            $roles = $user->roles->pluck('name')->toArray();
+            $adminRoles = ['Admin', 'Super Admin', 'Administrator'];
+            $nonAdminRoles = array_diff($roles, $adminRoles);
+            
+            if (empty($nonAdminRoles) && !empty(array_intersect($roles, $adminRoles))) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return back()->withErrors([
+                    'email' => 'Admin login is currently disabled. Please contact support.',
+                ])->withInput($request->only('email'));
+            }
+            
             // Redirect based on user role
             return $this->redirectBasedOnRole($user);
         }
@@ -66,9 +80,10 @@ class AuthController extends Controller
      */
     protected function redirectBasedOnRole($user)
     {
-        if ($user->isAdmin()) {
-            return redirect()->route('admin.dashboard');
-        }
+        // Skip admin dashboard — admin login is currently disabled
+        // if ($user->isAdmin()) {
+        //     return redirect()->route('admin.dashboard');
+        // }
         
         if ($user->isDoctor()) {
             return redirect()->route('doctor.dashboard');
