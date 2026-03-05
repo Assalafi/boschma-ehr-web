@@ -388,7 +388,7 @@ class ReceptionistController extends Controller
         switch ($type) {
             case 'spouse':
                 $enrollee = Spouse::with(['beneficiary.program', 'patient'])->findOrFail($id);
-                if ($enrollee->facility_id !== $facilityId) abort(403);
+                if ($enrollee->facility_id !== $facilityId && !$this->hasReferralToFacility($enrollee->patient, $facilityId)) abort(403);
                 $fullname = $enrollee->name;
                 $boschmaNo = $enrollee->boschma_no;
                 $programId = $enrollee->beneficiary->program_id ?? null;
@@ -396,7 +396,7 @@ class ReceptionistController extends Controller
                 break;
             case 'child':
                 $enrollee = Child::with(['beneficiary.program', 'patient'])->findOrFail($id);
-                if ($enrollee->facility_id !== $facilityId) abort(403);
+                if ($enrollee->facility_id !== $facilityId && !$this->hasReferralToFacility($enrollee->patient, $facilityId)) abort(403);
                 $fullname = $enrollee->name;
                 $boschmaNo = $enrollee->boschma_no;
                 $programId = $enrollee->beneficiary->program_id ?? null;
@@ -404,7 +404,7 @@ class ReceptionistController extends Controller
                 break;
             default: // beneficiary
                 $enrollee = Beneficiary::with(['patient', 'program'])->findOrFail($id);
-                if ($enrollee->facility_id !== $facilityId) abort(403);
+                if ($enrollee->facility_id !== $facilityId && !$this->hasReferralToFacility($enrollee->patient, $facilityId)) abort(403);
                 $fullname = $enrollee->fullname;
                 $boschmaNo = $enrollee->boschma_no;
                 $programId = $enrollee->program_id;
@@ -443,25 +443,52 @@ class ReceptionistController extends Controller
                 }
             }
             
+            // Check if this is a referred patient
+            $isReferral = $enrollee->facility_id !== $facilityId;
+            $referral = null;
+            $referralReason = '';
+            if ($isReferral && $patient) {
+                $referral = DB::table('service_referrals')
+                    ->join('encounters', 'service_referrals.encounter_id', '=', 'encounters.id')
+                    ->join('facilities', 'service_referrals.from_facility_id', '=', 'facilities.id')
+                    ->where('encounters.patient_id', $patient->id)
+                    ->where('service_referrals.to_facility_id', $facilityId)
+                    ->where('service_referrals.referral_type', 'patient')
+                    ->where('service_referrals.status', 'pending')
+                    ->whereNull('service_referrals.service_item_id')
+                    ->select('service_referrals.*', 'facilities.name as from_facility_name')
+                    ->first();
+                if ($referral) {
+                    $referralReason = 'Referred from ' . ($referral->from_facility_name ?? 'another facility') . '. Reason: ' . Str::limit($referral->reason, 200);
+                }
+            }
+
             // Create encounter
             $encounter = Encounter::create([
                 'patient_id' => $patient->id,
                 'facility_id' => $facilityId,
                 'program_id' => $programId,
                 'nature_of_visit' => $request->nature_of_visit,
-                'mode_of_entry' => 'Walk-in',
-                'reason_for_visit' => $request->chief_complaint,
+                'mode_of_entry' => $isReferral ? 'Referral' : 'Walk-in',
+                'reason_for_visit' => $isReferral && $referralReason ? $referralReason : $request->chief_complaint,
                 'status' => Encounter::STATUS_REGISTERED,
                 'officer_in_charge_id' => Auth::id(),
                 'visit_date' => $request->visit_date ?? now(),
             ]);
+
+            // Update referral status to accepted
+            if ($referral) {
+                DB::table('service_referrals')->where('id', $referral->id)->update(['status' => 'accepted', 'updated_at' => now()]);
+            }
             
             // Log the registration action
             EncounterAction::create([
                 'encounter_id' => $encounter->id,
                 'user_id' => Auth::id(),
                 'action_type' => ActionType::REGISTRATION,
-                'description' => 'Patient checked in by ' . Auth::user()->name,
+                'description' => $isReferral
+                    ? 'Referred patient registered from ' . ($referral->from_facility_name ?? 'another facility') . ' by ' . Auth::user()->name
+                    : 'Patient checked in by ' . Auth::user()->name,
                 'action_time' => now(),
             ]);
             
