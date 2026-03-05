@@ -643,43 +643,20 @@ class DoctorController extends Controller
             // Update original encounter status to Referred
             $encounter->update(['status' => Encounter::STATUS_REFERRED, 'outcome' => 'Referred']);
 
-            // Ensure consultation exists
+            // Ensure consultation exists and mark completed
             $consultation = ClinicalConsultation::firstOrCreate(
                 ['encounter_id' => $encounter->id],
                 ['doctor_id' => Auth::id(), 'status' => ClinicalConsultation::STATUS_IN_PROGRESS]
             );
             $consultation->update(['status' => ClinicalConsultation::STATUS_COMPLETED]);
 
-            // Create a NEW encounter at the receiving facility so their front desk sees the patient
-            $toFacility = Facility::find($request->to_facility_id);
-            $fromFacility = Facility::find($facilityId);
-            $newEncounter = Encounter::create([
-                'patient_id'           => $encounter->patient_id,
-                'facility_id'          => $request->to_facility_id,
-                'program_id'           => $encounter->program_id,
-                'nature_of_visit'      => $encounter->nature_of_visit ?? 'Referral',
-                'mode_of_entry'        => 'Referral',
-                'reason_for_visit'     => 'Referred from ' . ($fromFacility->name ?? 'another facility') . '. Reason: ' . Str::limit($request->reason, 200),
-                'status'               => Encounter::STATUS_PENDING,
-                'officer_in_charge_id' => Auth::id(),
-                'visit_date'           => now(),
-            ]);
-
             // Log action on original encounter
+            $toFacility = Facility::find($request->to_facility_id);
             EncounterAction::create([
                 'encounter_id' => $encounter->id,
                 'user_id'      => Auth::id(),
                 'action_type'  => ActionType::CONSULTATION,
                 'description'  => 'Patient referred to ' . ($toFacility->name ?? 'facility') . '. Reason: ' . Str::limit($request->reason, 100),
-                'action_time'  => now(),
-            ]);
-
-            // Log action on new encounter at receiving facility
-            EncounterAction::create([
-                'encounter_id' => $newEncounter->id,
-                'user_id'      => Auth::id(),
-                'action_type'  => ActionType::REGISTRATION,
-                'description'  => 'Referral from ' . ($fromFacility->name ?? 'another facility') . '. Awaiting front desk processing.',
                 'action_time'  => now(),
             ]);
 

@@ -64,10 +64,10 @@ class ReceptionistController extends Controller
             ->where('created_at', '>=', $monthStart)
             ->count();
             
-        // Referral patients awaiting processing
-        $pendingReferrals = Encounter::where('facility_id', $facilityId)
-            ->where('mode_of_entry', 'Referral')
-            ->whereIn('status', [Encounter::STATUS_PENDING, Encounter::STATUS_REGISTERED])
+        // Referral patients awaiting processing (from service_referrals table)
+        $pendingReferrals = DB::table('service_referrals')
+            ->where('to_facility_id', $facilityId)
+            ->where('status', 'pending')
             ->count();
             
         // Recent encounters (last 10)
@@ -493,26 +493,85 @@ class ReceptionistController extends Controller
     }
 
     /**
-     * Referrals management
+     * Referrals management — shows referrals sent TO this facility from service_referrals table
      */
     public function referrals(Request $request)
     {
         $facilityId = $this->getFacilityId();
         $status = $request->get('status', 'pending');
         
-        $query = Encounter::with(['patient', 'program'])
-            ->where('facility_id', $facilityId)
-            ->where('mode_of_entry', 'Referral');
+        $query = \App\Models\ServiceReferral::with(['encounter.patient', 'encounter.program', 'fromFacility'])
+            ->where('to_facility_id', $facilityId)
+            ->where('referral_type', 'patient')
+            ->whereNull('service_item_id');
         
         if ($status === 'pending') {
-            $query->whereIn('status', [Encounter::STATUS_PENDING, Encounter::STATUS_REGISTERED]);
+            $query->where('status', 'pending');
         } elseif ($status === 'processed') {
-            $query->whereNotIn('status', [Encounter::STATUS_PENDING, Encounter::STATUS_REGISTERED]);
+            $query->where('status', '!=', 'pending');
         }
         
         $referrals = $query->orderBy('created_at', 'desc')->paginate(20);
         
         return view('receptionist.referrals.index', compact('referrals', 'status'));
+    }
+
+    /**
+     * Register a referred patient — creates a new encounter at this facility
+     */
+    public function registerReferral(Request $request, \App\Models\ServiceReferral $referral)
+    {
+        $facilityId = $this->getFacilityId();
+        
+        if ((int) $referral->to_facility_id !== (int) $facilityId) {
+            abort(403, 'This referral is not for your facility.');
+        }
+        
+        if ($referral->status !== 'pending') {
+            return back()->with('error', 'This referral has already been processed.');
+        }
+        
+        $originalEncounter = Encounter::find($referral->encounter_id);
+        if (!$originalEncounter) {
+            return back()->with('error', 'Original encounter not found.');
+        }
+        
+        DB::beginTransaction();
+        try {
+            // Create new encounter at this facility
+            $encounter = Encounter::create([
+                'patient_id'           => $originalEncounter->patient_id,
+                'facility_id'          => $facilityId,
+                'program_id'           => $originalEncounter->program_id,
+                'nature_of_visit'      => $originalEncounter->nature_of_visit ?? 'Referral',
+                'mode_of_entry'        => 'Referral',
+                'reason_for_visit'     => 'Referred from ' . ($referral->fromFacility->name ?? 'another facility') . '. Reason: ' . Str::limit($referral->reason, 200),
+                'status'               => Encounter::STATUS_REGISTERED,
+                'officer_in_charge_id' => Auth::id(),
+                'visit_date'           => now(),
+            ]);
+            
+            // Update referral status to accepted
+            $referral->update(['status' => 'accepted']);
+            
+            // Log the registration action
+            EncounterAction::create([
+                'encounter_id' => $encounter->id,
+                'user_id'      => Auth::id(),
+                'action_type'  => ActionType::REGISTRATION,
+                'description'  => 'Referred patient registered from ' . ($referral->fromFacility->name ?? 'another facility') . ' by ' . Auth::user()->name,
+                'action_time'  => now(),
+            ]);
+            
+            DB::commit();
+            
+            return redirect()->route('receptionist.encounters.show', $encounter)
+                ->with('success', 'Referred patient registered successfully. You can now forward to nurse for triage.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to register referred patient: ' . $e->getMessage());
+        }
     }
 
     /**

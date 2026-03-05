@@ -69,73 +69,63 @@
                         <th>Patient</th>
                         <th>BOSCHMA ID</th>
                         <th>Referred From</th>
-                        <th>Nature of Visit</th>
+                        <th>Reason</th>
                         <th>Status</th>
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($referrals as $encounter)
+                    @forelse($referrals as $referral)
+                    @php
+                        $patient = $referral->encounter->patient ?? null;
+                    @endphp
                     <tr>
                         <td>
-                            <span class="fw-medium">{{ $encounter->created_at->format('M d, Y') }}</span>
-                            <br><small class="text-muted">{{ $encounter->created_at->format('H:i') }}</small>
+                            <span class="fw-medium">{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('M d, Y') : 'N/A' }}</span>
+                            <br><small class="text-muted">{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('H:i') : '' }}</small>
                         </td>
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="wh-40 bg-info-subtle rounded-circle d-flex align-items-center justify-content-center me-2 overflow-hidden">
-                                    @if($encounter->patient->enrollee_photo)
-                                        <img src="{{ $encounter->patient->enrollee_photo }}" class="rounded-circle wh-40 object-fit-cover" alt="">
+                                    @if($patient && $patient->enrollee_photo)
+                                        <img src="{{ $patient->enrollee_photo }}" class="rounded-circle wh-40 object-fit-cover" alt="">
                                     @else
                                         <span class="material-symbols-outlined text-info fs-6">person</span>
                                     @endif
                                 </div>
                                 <div>
-                                    <span class="fw-medium">{{ $encounter->patient->enrollee_name ?? 'N/A' }}</span>
-                                    <br><small class="text-muted">{{ $encounter->patient->enrollee_gender ?? '' }}</small>
+                                    <span class="fw-medium">{{ $patient->enrollee_name ?? 'N/A' }}</span>
+                                    <br><small class="text-muted">{{ $patient->enrollee_gender ?? '' }}</small>
                                 </div>
                             </div>
                         </td>
-                        <td><span class="badge bg-light text-dark">{{ $encounter->patient->enrollee_number ?? 'N/A' }}</span></td>
-                        <td>External Referral</td>
-                        <td>{{ $encounter->nature_of_visit }}</td>
+                        <td><span class="badge bg-light text-dark">{{ $patient->enrollee_number ?? 'N/A' }}</span></td>
+                        <td>
+                            <span class="fw-medium">{{ $referral->fromFacility->name ?? 'Unknown' }}</span>
+                        </td>
+                        <td style="max-width:200px"><small>{{ Str::limit($referral->reason, 80) }}</small></td>
                         <td>
                             @php
                                 $statusColors = [
-                                    'Pending' => 'warning',
-                                    'Registered' => 'info',
-                                    'Triaged' => 'primary',
-                                    'In Consultation' => 'primary',
-                                    'Completed' => 'success',
-                                    'Cancelled' => 'danger',
+                                    'pending' => 'warning',
+                                    'accepted' => 'success',
+                                    'rejected' => 'danger',
                                 ];
-                                $color = $statusColors[$encounter->status] ?? 'secondary';
+                                $color = $statusColors[$referral->status] ?? 'secondary';
                             @endphp
-                            <span class="badge bg-{{ $color }}">{{ $encounter->status }}</span>
+                            <span class="badge bg-{{ $color }}">{{ ucfirst($referral->status) }}</span>
                         </td>
                         <td class="text-center">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">
-                                    <span class="material-symbols-outlined fs-6">more_vert</span>
+                            @if($referral->status === 'pending')
+                            <form action="{{ route('receptionist.referrals.register', $referral) }}" method="POST" class="d-inline" onsubmit="return confirm('Register this referred patient and create an encounter?')">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <span class="material-symbols-outlined me-1 fs-6">person_add</span> Register
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item" href="{{ route('receptionist.encounters.show', $encounter) }}">
-                                            <span class="material-symbols-outlined me-2 fs-6">visibility</span> View Details
-                                        </a>
-                                    </li>
-                                    @if(in_array($encounter->status, ['Pending', 'Registered']))
-                                    <li>
-                                        <form action="{{ route('receptionist.encounters.forward-nurse', $encounter) }}" method="POST">
-                                            @csrf
-                                            <button type="submit" class="dropdown-item">
-                                                <span class="material-symbols-outlined me-2 fs-6">send</span> Forward to Nurse
-                                            </button>
-                                        </form>
-                                    </li>
-                                    @endif
-                                </ul>
-                            </div>
+                            </form>
+                            @else
+                            <span class="badge bg-success-subtle text-success">Registered</span>
+                            @endif
                         </td>
                     </tr>
                     @empty
