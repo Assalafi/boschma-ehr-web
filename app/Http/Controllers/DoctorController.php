@@ -144,7 +144,8 @@ class DoctorController extends Controller
             'awaitingLab'      => (clone $base)->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'))->count(),
             'awaitingPharmacy' => (clone $base)->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]))->count(),
             'admitted'         => (clone $base)->where('status', Encounter::STATUS_ADMITTED)->count(),
-            'completedToday'   => (clone $base)->whereHas('consultations', fn($q) => $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', today()))->count(),
+            'referred'         => (clone $base)->where('status', Encounter::STATUS_REFERRED)->count(),
+            'completedToday'   => (clone $base)->where('status', '!=', Encounter::STATUS_REFERRED)->whereHas('consultations', fn($q) => $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', today()))->count(),
         ];
 
         $programs = \App\Models\Program::orderBy('name')->pluck('name', 'id');
@@ -197,10 +198,16 @@ class DoctorController extends Controller
                 if ($request->filled('ward')) $query->whereHas('admission', fn($q) => $q->where('ward_id', $request->ward));
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._admitted_table'; break;
+            case 'referred':
+                $query->where('status', Encounter::STATUS_REFERRED);
+                if ($request->filled('program')) $query->where('program_id', $request->program);
+                $query->orderByDesc('updated_at');
+                $partial = 'doctor.queue._referred_table'; break;
             case 'completedToday':
                 $dateFrom = $request->get('date_from', today()->format('Y-m-d'));
                 $dateTo = $request->get('date_to', today()->format('Y-m-d'));
-                $query->whereHas('consultations', function ($q) use ($dateFrom, $dateTo) {
+                $query->where('status', '!=', Encounter::STATUS_REFERRED)
+                    ->whereHas('consultations', function ($q) use ($dateFrom, $dateTo) {
                     $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', '>=', $dateFrom)->whereDate('updated_at', '<=', $dateTo);
                 });
                 if ($request->filled('doctor')) $query->whereHas('consultations', fn($q) => $q->where('doctor_id', $request->doctor));
@@ -633,8 +640,8 @@ class DoctorController extends Controller
                 DB::table('service_referrals')->insert($data);
             }
 
-            // Update encounter status
-            $encounter->update(['status' => Encounter::STATUS_REFERRED]);
+            // Update original encounter status to Referred
+            $encounter->update(['status' => Encounter::STATUS_REFERRED, 'outcome' => 'Referred']);
 
             // Ensure consultation exists
             $consultation = ClinicalConsultation::firstOrCreate(
@@ -643,13 +650,36 @@ class DoctorController extends Controller
             );
             $consultation->update(['status' => ClinicalConsultation::STATUS_COMPLETED]);
 
-            // Log action
+            // Create a NEW encounter at the receiving facility so their front desk sees the patient
             $toFacility = Facility::find($request->to_facility_id);
+            $fromFacility = Facility::find($facilityId);
+            $newEncounter = Encounter::create([
+                'patient_id'           => $encounter->patient_id,
+                'facility_id'          => $request->to_facility_id,
+                'program_id'           => $encounter->program_id,
+                'nature_of_visit'      => $encounter->nature_of_visit ?? 'Referral',
+                'mode_of_entry'        => 'Referral',
+                'reason_for_visit'     => 'Referred from ' . ($fromFacility->name ?? 'another facility') . '. Reason: ' . Str::limit($request->reason, 200),
+                'status'               => Encounter::STATUS_PENDING,
+                'officer_in_charge_id' => Auth::id(),
+                'visit_date'           => now(),
+            ]);
+
+            // Log action on original encounter
             EncounterAction::create([
                 'encounter_id' => $encounter->id,
                 'user_id'      => Auth::id(),
                 'action_type'  => ActionType::CONSULTATION,
                 'description'  => 'Patient referred to ' . ($toFacility->name ?? 'facility') . '. Reason: ' . Str::limit($request->reason, 100),
+                'action_time'  => now(),
+            ]);
+
+            // Log action on new encounter at receiving facility
+            EncounterAction::create([
+                'encounter_id' => $newEncounter->id,
+                'user_id'      => Auth::id(),
+                'action_type'  => ActionType::REGISTRATION,
+                'description'  => 'Referral from ' . ($fromFacility->name ?? 'another facility') . '. Awaiting front desk processing.',
                 'action_time'  => now(),
             ]);
 

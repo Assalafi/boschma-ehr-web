@@ -82,6 +82,10 @@
       <span class="material-symbols-outlined" style="font-size:16px">local_hospital</span> Admitted
       <span class="tab-count" data-count="admitted" style="background:#e0e7ff;color:#4f46e5">{{ $counts['admitted'] }}</span>
     </button>
+    <button class="queue-tab" data-tab="referred" type="button">
+      <span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span> Referred
+      <span class="tab-count" data-count="referred" style="background:#fef3e8;color:#e67e22">{{ $counts['referred'] }}</span>
+    </button>
     <button class="queue-tab" data-tab="completedToday" type="button">
       <span class="material-symbols-outlined" style="font-size:16px">check_circle</span> Completed
       <span class="tab-count" data-count="completedToday" style="background:#dcfce7;color:#059669">{{ $counts['completedToday'] }}</span>
@@ -143,6 +147,17 @@
     <select class="tab-filter" data-filter="program"><option value="">All Programs</option>@foreach($programs as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
     <select class="tab-filter" data-filter="per_page"><option value="15">15 / page</option><option value="25">25</option><option value="50">50</option></select>
     <span class="tab-info" data-info="admitted"></span>
+  </div>
+
+  {{-- REFERRED filters --}}
+  <div class="tab-toolbar" data-toolbar="referred" style="display:none">
+    <div class="tab-search-wrap">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" class="tab-search-input" data-filter="search" placeholder="Search patient, ID, or facility...">
+    </div>
+    <select class="tab-filter" data-filter="program"><option value="">All Programs</option>@foreach($programs as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
+    <select class="tab-filter" data-filter="per_page"><option value="15">15 / page</option><option value="25">25</option><option value="50">50</option></select>
+    <span class="tab-info" data-info="referred"></span>
   </div>
 
   {{-- COMPLETED filters --}}
