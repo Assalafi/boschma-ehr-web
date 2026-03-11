@@ -128,10 +128,7 @@
 
     <div class="consult-footer">
         <button type="button" class="btn-step-prev btn" onclick="prevStep()">Previous</button>
-        <button type="submit" class="btn-step-next btn px-4">
-            <span class="material-symbols-outlined align-middle me-1" style="font-size:18px">check_circle</span>
-            Submit Consultation
-        </button>
+        
     </div>
 </div>
 
