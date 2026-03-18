@@ -98,6 +98,9 @@
                                     'In Consultation' => 'primary',
                                     'Awaiting Lab' => 'secondary',
                                     'Awaiting Pharmacy' => 'dark',
+                                    'Follow-up' => 'warning',
+                                    'Admitted' => 'info',
+                                    'Referred' => 'danger',
                                     'Completed' => 'success',
                                     'Cancelled' => 'danger',
                                 ];
@@ -130,6 +133,24 @@
                                         <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#cancelModal{{ $encounter->id }}">
                                             <span class="material-symbols-outlined me-2 fs-6">cancel</span> Cancel
                                         </a>
+                                    </li>
+                                    @elseif($encounter->status === 'Follow-up')
+                                    <li>
+                                        <form action="{{ route('receptionist.encounters.reopen-followup', $encounter) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item" onclick="return confirm('Reopen this follow-up encounter?')">
+                                                <span class="material-symbols-outlined me-2 fs-6">refresh</span> Reopen &amp; Send for Triage
+                                            </button>
+                                        </form>
+                                    </li>
+                                    @elseif(!in_array($encounter->status, ['Completed', 'Cancelled', 'Registered']))
+                                    <li>
+                                        <form action="{{ route('receptionist.encounters.send-to-triage', $encounter) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="dropdown-item" onclick="return confirm('Send back to nurse for re-triage?')">
+                                                <span class="material-symbols-outlined me-2 fs-6">vital_signs</span> Send to Triage
+                                            </button>
+                                        </form>
                                     </li>
                                     @endif
                                 </ul>

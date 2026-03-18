@@ -58,6 +58,9 @@
                                 </div>
                                 <div>
                                     <span class="fw-medium">{{ $encounter->patient->enrollee_name ?? 'N/A' }}</span>
+                                    @if($encounter->vitalSigns->count() > 0)
+                                        <span class="badge bg-info ms-1" style="font-size:9px">Re-triage</span>
+                                    @endif
                                     <br><small class="text-muted">{{ $encounter->nature_of_visit }}</small>
                                 </div>
                             </div>

@@ -86,6 +86,10 @@
       <span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span> Referred
       <span class="tab-count" data-count="referred" style="background:#fef3e8;color:#e67e22">{{ $counts['referred'] }}</span>
     </button>
+    <button class="queue-tab" data-tab="followUp" type="button">
+      <span class="material-symbols-outlined" style="font-size:16px">event</span> Follow-up
+      <span class="tab-count" data-count="followUp" style="background:#fef3c7;color:#d97706">{{ $counts['followUp'] }}</span>
+    </button>
     <button class="queue-tab" data-tab="completedToday" type="button">
       <span class="material-symbols-outlined" style="font-size:16px">check_circle</span> Completed
       <span class="tab-count" data-count="completedToday" style="background:#dcfce7;color:#059669">{{ $counts['completedToday'] }}</span>
@@ -158,6 +162,17 @@
     <select class="tab-filter" data-filter="program"><option value="">All Programs</option>@foreach($programs as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
     <select class="tab-filter" data-filter="per_page"><option value="15">15 / page</option><option value="25">25</option><option value="50">50</option></select>
     <span class="tab-info" data-info="referred"></span>
+  </div>
+
+  {{-- FOLLOW-UP filters --}}
+  <div class="tab-toolbar" data-toolbar="followUp" style="display:none">
+    <div class="tab-search-wrap">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" class="tab-search-input" data-filter="search" placeholder="Search patient, ID, or follow-up date...">
+    </div>
+    <select class="tab-filter" data-filter="program"><option value="">All Programs</option>@foreach($programs as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
+    <select class="tab-filter" data-filter="per_page"><option value="15">15 / page</option><option value="25">25</option><option value="50">50</option></select>
+    <span class="tab-info" data-info="followUp"></span>
   </div>
 
   {{-- COMPLETED filters --}}

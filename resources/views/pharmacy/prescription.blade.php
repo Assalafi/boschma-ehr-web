@@ -281,11 +281,10 @@
               $isPending  = $item->dispensing_status === \App\Models\PrescriptionItem::STATUS_PENDING;
               $isDispensed= $item->dispensing_status === \App\Models\PrescriptionItem::STATUS_DISPENSED;
               $isCancelled= $item->dispensing_status === 'Cancelled';
-              $encounterCompleted = ($prescription->consultation && $prescription->consultation->encounter && $prescription->consultation->encounter->status === \App\Models\Encounter::STATUS_COMPLETED);
             @endphp
             <tr id="item-row-{{ $item->id }}" class="{{ $isDispensed ? 'row-dispensed' : '' }}{{ $isCancelled ? 'row-cancelled' : '' }}">
               <td style="text-align:center;padding-left:14px">
-                @if($isPending && !$encounterCompleted)
+                @if($isPending)
                 <input type="checkbox" class="pharm-check item-check"
                   value="{{ $item->id }}"
                   data-unit-price="{{ $drug ? $drug->getSellingPrice($facilityId) : 0 }}"
@@ -321,7 +320,7 @@
                 @endif
               </td>
               <td style="text-align:center">
-                @if($isPending && !$encounterCompleted)
+                @if($isPending)
                 <input type="number" class="pharm-qty-input" id="qty-{{ $item->id }}"
                   value="{{ max($remaining, 1) }}" min="1" max="{{ $stock > 0 ? $stock : 999 }}"
                   oninput="onQtyChange('{{ $item->id }}')">
@@ -330,12 +329,12 @@
                 @endif
               </td>
               <td style="text-align:center">
-                @if($isPending && !$encounterCompleted)
+                @if($isPending)
                   <button type="button" class="pharm-btn pharm-btn-danger-ghost" style="padding:4px 8px"
                     onclick="confirmCancel('{{ $item->id }}')" id="btn-cancel-{{ $item->id }}" title="Cancel">
                     <span class="material-symbols-outlined" style="font-size:14px">close</span>
                   </button>
-                @elseif($isDispensed && !$encounterCompleted)
+                @elseif($isDispensed)
                   <div class="d-flex gap-1 justify-content-center">
                     <button type="button" class="pharm-btn pharm-btn-amber" style="padding:4px 8px"
                       onclick="showEditQuantity('{{ $item->id }}', {{ $item->quantity }}, {{ $dispensed }})" title="Adjust qty">

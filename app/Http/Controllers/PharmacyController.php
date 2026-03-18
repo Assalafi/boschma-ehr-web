@@ -139,11 +139,7 @@ class PharmacyController extends Controller
 
         $item->load(['drug', 'prescription.consultation.encounter', 'dispensations']);
 
-        // Check if encounter is completed - if so, no edits allowed
         $encounter = $item->prescription->consultation->encounter ?? null;
-        if ($encounter && $encounter->status === \App\Models\Encounter::STATUS_COMPLETED) {
-            return response()->json(['error' => 'Cannot modify: Encounter has been completed.'], 422);
-        }
 
         $programId = $encounter->program_id ?? null;
 
@@ -355,9 +351,6 @@ class PharmacyController extends Controller
         $isSecondary = $facility && strtolower($facility->type) === 'secondary';
 
         $encounter = $prescription->consultation?->encounter ?? null;
-        if ($encounter && $encounter->status === \App\Models\Encounter::STATUS_COMPLETED) {
-            return response()->json(['error' => 'Cannot modify: Encounter has been completed.'], 422);
-        }
 
         $programId = $encounter->program_id ?? null;
 

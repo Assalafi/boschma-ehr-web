@@ -533,6 +533,8 @@ class ReceptionistController extends Controller
             Encounter::STATUS_IN_CONSULTATION,
             Encounter::STATUS_AWAITING_LAB,
             Encounter::STATUS_AWAITING_PHARMACY,
+            Encounter::STATUS_FOLLOW_UP,
+            Encounter::STATUS_ADMITTED,
             Encounter::STATUS_COMPLETED,
             Encounter::STATUS_CANCELLED,
         ];
@@ -592,6 +594,70 @@ class ReceptionistController extends Controller
         
         return redirect()->route('receptionist.encounters.index')
             ->with('success', 'Patient forwarded to nurse for triage.');
+    }
+
+    /**
+     * Send any active encounter back to nurse for re-triage
+     */
+    public function sendToTriage(Request $request, Encounter $encounter)
+    {
+        $facilityId = $this->getFacilityId();
+        
+        if ($encounter->facility_id !== $facilityId) {
+            abort(403, 'This encounter does not belong to your facility.');
+        }
+        
+        $blockedStatuses = [Encounter::STATUS_COMPLETED, Encounter::STATUS_CANCELLED];
+        if (in_array($encounter->status, $blockedStatuses)) {
+            return back()->with('error', 'Completed or cancelled encounters cannot be sent for triage.');
+        }
+        
+        $previousStatus = $encounter->status;
+        $encounter->update([
+            'status' => Encounter::STATUS_REGISTERED,
+        ]);
+        
+        EncounterAction::create([
+            'encounter_id' => $encounter->id,
+            'user_id' => Auth::id(),
+            'action_type' => ActionType::TRIAGE,
+            'description' => 'Encounter sent back for re-triage by ' . Auth::user()->name . ' (was: ' . $previousStatus . ')',
+            'action_time' => now(),
+        ]);
+        
+        return redirect()->route('receptionist.encounters.show', $encounter)
+            ->with('success', 'Patient sent to nurse for re-triage.');
+    }
+
+    /**
+     * Reopen a Follow-up encounter so it can continue through triage → queue → consultation
+     */
+    public function reopenFollowUp(Request $request, Encounter $encounter)
+    {
+        $facilityId = $this->getFacilityId();
+        
+        if ($encounter->facility_id !== $facilityId) {
+            abort(403, 'This encounter does not belong to your facility.');
+        }
+        
+        if ($encounter->status !== Encounter::STATUS_FOLLOW_UP) {
+            return back()->with('error', 'Only follow-up encounters can be reopened.');
+        }
+        
+        $encounter->update([
+            'status' => Encounter::STATUS_REGISTERED,
+        ]);
+        
+        EncounterAction::create([
+            'encounter_id' => $encounter->id,
+            'user_id' => Auth::id(),
+            'action_type' => ActionType::REGISTRATION,
+            'description' => 'Follow-up encounter reopened and sent for triage by ' . Auth::user()->name,
+            'action_time' => now(),
+        ]);
+        
+        return redirect()->route('receptionist.encounters.show', $encounter)
+            ->with('success', 'Follow-up encounter reopened. Patient has been sent for triage.');
     }
 
     /**

@@ -139,13 +139,14 @@ class DoctorController extends Controller
         $base = Encounter::where('facility_id', $facilityId);
 
         $counts = [
-            'triaged'          => (clone $base)->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->whereDoesntHave('consultations')->whereHas('vitalSigns')->count(),
+            'triaged'          => (clone $base)->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->whereDoesntHave('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->whereHas('vitalSigns')->count(),
             'inConsultation'   => (clone $base)->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->where('status', '!=', Encounter::STATUS_ADMITTED)->count(),
             'awaitingLab'      => (clone $base)->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'))->count(),
             'awaitingPharmacy' => (clone $base)->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]))->count(),
             'admitted'         => (clone $base)->where('status', Encounter::STATUS_ADMITTED)->count(),
             'referred'         => (clone $base)->where('status', Encounter::STATUS_REFERRED)->count(),
-            'completedToday'   => (clone $base)->where('status', '!=', Encounter::STATUS_REFERRED)->whereHas('consultations', fn($q) => $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', today()))->count(),
+            'followUp'         => (clone $base)->where('status', Encounter::STATUS_FOLLOW_UP)->count(),
+            'completedToday'   => (clone $base)->whereNotIn('status', [Encounter::STATUS_REFERRED, Encounter::STATUS_FOLLOW_UP, Encounter::STATUS_ADMITTED])->whereHas('consultations', fn($q) => $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', today()))->count(),
         ];
 
         $programs = \App\Models\Program::orderBy('name')->pluck('name', 'id');
@@ -172,7 +173,7 @@ class DoctorController extends Controller
         }
         switch ($tab) {
             case 'triaged':
-                $query->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->whereDoesntHave('consultations')->whereHas('vitalSigns');
+                $query->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->whereDoesntHave('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->whereHas('vitalSigns');
                 if ($request->filled('priority')) $query->whereHas('vitalSigns', fn($q) => $q->where('overall_priority', $request->priority));
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 $query->orderByRaw("(SELECT CASE WHEN LOWER(overall_priority) IN ('red','critical','high') THEN 1 WHEN LOWER(overall_priority) IN ('yellow','urgent','orange') THEN 2 ELSE 3 END FROM vital_signs WHERE encounter_id = encounters.id ORDER BY created_at DESC LIMIT 1)")->orderBy('created_at');
@@ -203,10 +204,15 @@ class DoctorController extends Controller
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._referred_table'; break;
+            case 'followUp':
+                $query->where('status', Encounter::STATUS_FOLLOW_UP);
+                if ($request->filled('program')) $query->where('program_id', $request->program);
+                $query->orderByDesc('updated_at');
+                $partial = 'doctor.queue._followup_table'; break;
             case 'completedToday':
                 $dateFrom = $request->get('date_from', today()->format('Y-m-d'));
                 $dateTo = $request->get('date_to', today()->format('Y-m-d'));
-                $query->where('status', '!=', Encounter::STATUS_REFERRED)
+                $query->whereNotIn('status', [Encounter::STATUS_REFERRED, Encounter::STATUS_FOLLOW_UP, Encounter::STATUS_ADMITTED])
                     ->whereHas('consultations', function ($q) use ($dateFrom, $dateTo) {
                     $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', '>=', $dateFrom)->whereDate('updated_at', '<=', $dateTo);
                 });
@@ -710,16 +716,8 @@ class DoctorController extends Controller
             \Log::info('Pending lab orders: ' . ($pendingLabOrders ? 'YES' : 'NO'));
             \Log::info('Pending pharmacy orders: ' . ($pendingPharmacyOrders ? 'YES' : 'NO'));
 
-            if ($pendingLabOrders || $pendingPharmacyOrders) {
-                $messages = [];
-                if ($pendingLabOrders) {
-                    $messages[] = 'pending laboratory orders';
-                }
-                if ($pendingPharmacyOrders) {
-                    $messages[] = 'pending pharmacy prescriptions';
-                }
-
-                $message = 'Cannot discharge patient with ' . implode(' and ', $messages) . '. Please complete or cancel these orders first.';
+            if ($pendingLabOrders) {
+                $message = 'Cannot discharge patient with pending laboratory orders. Please complete or cancel these orders first.';
                 \Log::info('Discharge blocked: ' . $message);
                 return response()->json(['error' => $message], 422);
             }
@@ -767,7 +765,10 @@ class DoctorController extends Controller
             }
 
             // Update encounter
-            $encounterUpdate = ['status' => $statusMap[$outcome] ?? Encounter::STATUS_COMPLETED];
+            $encounterUpdate = [
+                'status'  => $statusMap[$outcome] ?? Encounter::STATUS_COMPLETED,
+                'outcome' => $outcome,
+            ];
             \Log::info("Updating encounter {$encounter->id} to status: {$encounterUpdate['status']}");
             if ($outcome === 'Follow-up' && $request->follow_up_date) {
                 $encounterUpdate['follow_up_date'] = $request->follow_up_date;

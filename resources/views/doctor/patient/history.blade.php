@@ -95,7 +95,7 @@
         <div class="timeline-item">
           <div class="timeline-header">
             <div>
-              @php $sc = match($encounter->status) { 'Completed' => 'green', 'In Progress' => 'amber', default => 'gray' }; @endphp
+              @php $sc = match($encounter->status) { 'Completed' => 'green', 'In Progress','In Consultation' => 'amber', 'Follow-up' => 'amber', 'Admitted' => 'blue', 'Referred' => 'red', default => 'gray' }; @endphp
               <span class="doc-badge doc-badge-{{ $sc }}" style="margin-right:8px">{{ $encounter->status }}</span>
               <strong style="font-size:14px;color:#1e293b">{{ $encounter->visit_date?->format('d M Y') }}</strong>
               <div style="font-size:12px;color:#94a3b8;margin-top:2px">{{ $encounter->nature_of_visit }} | {{ $encounter->program->name ?? 'N/A' }}</div>

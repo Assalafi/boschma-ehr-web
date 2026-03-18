@@ -146,6 +146,41 @@
       </div>
     </div>
     
+    {{-- Vital Signs / Triage --}}
+    <div class="nurse-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="card-title mb-0">Vital Signs</h6>
+          <a href="{{ route('nurse.triage.create', $admission->encounter) }}" class="nurse-btn nurse-btn-primary">
+            <span class="material-symbols-outlined" style="font-size:16px">monitor_heart</span> Record Vitals
+          </a>
+        </div>
+        @if($admission->encounter->vitalSigns->count() > 0)
+        <div class="table-responsive">
+          <table class="table table-sm" style="font-size:12px">
+            <thead><tr><th>Date</th><th>BP</th><th>Temp</th><th>Pulse</th><th>RR</th><th>SpO2</th><th>Priority</th><th>By</th></tr></thead>
+            <tbody>
+              @foreach($admission->encounter->vitalSigns->sortByDesc('created_at')->take(5) as $vs)
+              <tr>
+                <td>{{ $vs->created_at->format('M j, H:i') }}</td>
+                <td>{{ $vs->blood_pressure ?? '-' }}</td>
+                <td>{{ $vs->temperature ?? '-' }}°C</td>
+                <td>{{ $vs->pulse_rate ?? '-' }}</td>
+                <td>{{ $vs->respiration_rate ?? '-' }}</td>
+                <td>{{ $vs->spo2 ?? '-' }}%</td>
+                <td><span class="badge" style="background:{{ $vs->priority_color }}; color:#fff">{{ $vs->overall_priority }}</span></td>
+                <td>{{ $vs->takenBy->name ?? '-' }}</td>
+              </tr>
+              @endforeach
+            </tbody>
+          </table>
+        </div>
+        @else
+        <p class="text-muted small mb-0">No vital signs recorded yet.</p>
+        @endif
+      </div>
+    </div>
+
     {{-- Recent Consultations --}}
     @if($admission->encounter->consultations->count() > 0)
       <div class="nurse-card">

@@ -6,8 +6,8 @@
         <th style="background:#f8fafc;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">Program</th>
         <th style="background:#f8fafc;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">Complaint</th>
         <th style="background:#f8fafc;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">Doctor</th>
-        <th style="background:#f8fafc;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">Completed</th>
-        <th style="background:#f8fafc;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">Outcome</th>
+        <th style="background:#f8fafc;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">Follow-up Date</th>
+        <th style="background:#f8fafc;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0">Status</th>
         <th style="background:#f8fafc;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;border-bottom:2px solid #e2e8f0;text-align:center">Action</th>
       </tr>
     </thead>
@@ -16,16 +16,18 @@
       @php
         $consultation = $encounter->consultations->first();
         $doctor = $consultation?->doctor;
-        $duration = $consultation ? $consultation->created_at->diffForHumans($consultation->updated_at, true) : 'N/A';
+        $followUpDate = $encounter->follow_up_date;
+        $isOverdue = $followUpDate && $followUpDate->isPast();
+        $isDueToday = $followUpDate && $followUpDate->isToday();
       @endphp
-      <tr style="border-bottom:1px solid #f1f5f9;background:#fafff9" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#fafff9'">
+      <tr style="border-bottom:1px solid #f1f5f9;background:{{ $isOverdue ? '#fef2f2' : ($isDueToday ? '#fffbeb' : '#fffdf7') }}" onmouseover="this.style.background='{{ $isOverdue ? '#fee2e2' : ($isDueToday ? '#fef3c7' : '#fef3c7') }}'" onmouseout="this.style.background='{{ $isOverdue ? '#fef2f2' : ($isDueToday ? '#fffbeb' : '#fffdf7') }}'">
         <td style="padding:12px 14px;vertical-align:middle">
           <div style="display:flex;align-items:center;gap:12px">
-            <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:#dcfce7">
+            <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:#fef3c7">
               @if($encounter->patient->enrollee_photo ?? false)
                 <img src="{{ $encounter->patient->enrollee_photo }}" style="width:100%;height:100%;object-fit:cover" alt="">
               @else
-                <span class="material-symbols-outlined" style="font-size:18px;color:#059669">person</span>
+                <span class="material-symbols-outlined" style="font-size:18px;color:#d97706">person</span>
               @endif
             </div>
             <div>
@@ -50,18 +52,30 @@
           </div>
           @else <span style="color:#94a3b8;font-size:12px">Not assigned</span> @endif
         </td>
-        <td style="padding:12px 14px;vertical-align:middle;font-size:12px;color:#64748b">{{ $encounter->updated_at->format('H:i') }}</td>
         <td style="padding:12px 14px;vertical-align:middle">
-          @php
-            $outcomeVal = $encounter->outcome ?? 'Completed';
-            $outcomeBg = match($outcomeVal) { 'Follow-up' => '#fef3c7', 'Admit' => '#dbeafe', 'Referred' => '#fef3e8', default => '#dcfce7' };
-            $outcomeColor = match($outcomeVal) { 'Follow-up' => '#d97706', 'Admit' => '#2563eb', 'Referred' => '#e67e22', default => '#166534' };
-          @endphp
-          <span style="display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:{{ $outcomeBg }};color:{{ $outcomeColor }}">{{ $outcomeVal }}</span>
+          @if($followUpDate)
+            <div style="font-weight:600;font-size:12px;color:{{ $isOverdue ? '#dc2626' : ($isDueToday ? '#d97706' : '#1e293b') }}">
+              {{ $followUpDate->format('d M Y') }}
+            </div>
+            <div style="font-size:10px;color:{{ $isOverdue ? '#dc2626' : '#94a3b8' }}">
+              {{ $isOverdue ? 'Overdue' : ($isDueToday ? 'Due today' : $followUpDate->diffForHumans()) }}
+            </div>
+          @else
+            <span style="color:#94a3b8;font-size:12px">Not set</span>
+          @endif
+        </td>
+        <td style="padding:12px 14px;vertical-align:middle">
+          @if($isOverdue)
+            <span style="display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#fee2e2;color:#dc2626">Overdue</span>
+          @elseif($isDueToday)
+            <span style="display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#fef3c7;color:#d97706">Due Today</span>
+          @else
+            <span style="display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:#dbeafe;color:#2563eb">Scheduled</span>
+          @endif
         </td>
         <td style="padding:12px 14px;vertical-align:middle;text-align:center">
           @if($consultation)
-          <a href="{{ route('doctor.consultation.show', $consultation) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#059669;color:#fff;text-decoration:none">
+          <a href="{{ route('doctor.consultation.show', $consultation) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#d97706;color:#fff;text-decoration:none">
             <span class="material-symbols-outlined" style="font-size:14px">visibility</span> View
           </a>
           @else <span style="color:#94a3b8;font-size:12px">N/A</span> @endif
@@ -70,9 +84,9 @@
       @empty
       <tr>
         <td colspan="7" style="text-align:center;padding:48px 20px">
-          <span class="material-symbols-outlined" style="font-size:52px;color:#059669;opacity:.4">check_circle</span>
-          <h5 style="font-weight:700;color:#1e293b;margin-top:10px;font-size:15px">No Completed Consultations Today</h5>
-          <p style="color:#94a3b8;font-size:13px">No consultations have been completed today.</p>
+          <span class="material-symbols-outlined" style="font-size:52px;color:#d97706;opacity:.4">event</span>
+          <h5 style="font-weight:700;color:#1e293b;margin-top:10px;font-size:15px">No Follow-up Patients</h5>
+          <p style="color:#94a3b8;font-size:13px">No patients are currently scheduled for follow-up.</p>
         </td>
       </tr>
       @endforelse

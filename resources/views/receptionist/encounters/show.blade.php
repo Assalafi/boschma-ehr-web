@@ -110,6 +110,9 @@
                         'In Consultation' => 'primary',
                         'Awaiting Lab' => 'secondary',
                         'Awaiting Pharmacy' => 'dark',
+                        'Follow-up' => 'warning',
+                        'Admitted' => 'info',
+                        'Referred' => 'danger',
                         'Completed' => 'success',
                         'Cancelled' => 'danger',
                     ];
@@ -186,14 +189,35 @@
         </div>
         @endif
 
+        @if($encounter->status === 'Follow-up' && $encounter->follow_up_date)
+        <div class="card border-0 rounded-3 mb-4 border-start border-4 border-warning">
+            <div class="card-body p-4 d-flex align-items-center gap-3">
+                <span class="material-symbols-outlined text-warning" style="font-size:2rem">event</span>
+                <div>
+                    <h6 class="mb-1 fw-semibold">Follow-up Scheduled</h6>
+                    <p class="mb-0 text-muted">
+                        Date: <strong>{{ \Carbon\Carbon::parse($encounter->follow_up_date)->format('d M Y') }}</strong>
+                        @if(\Carbon\Carbon::parse($encounter->follow_up_date)->isPast())
+                            <span class="badge bg-danger ms-2">Overdue</span>
+                        @elseif(\Carbon\Carbon::parse($encounter->follow_up_date)->isToday())
+                            <span class="badge bg-warning text-dark ms-2">Due Today</span>
+                        @else
+                            <span class="badge bg-info ms-2">{{ \Carbon\Carbon::parse($encounter->follow_up_date)->diffForHumans() }}</span>
+                        @endif
+                    </p>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <!-- Actions -->
         <div class="card border-0 rounded-3">
             <div class="card-body p-4">
-                <div class="d-flex justify-content-between">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
                     <a href="{{ route('receptionist.encounters.index') }}" class="btn btn-light">
                         <span class="material-symbols-outlined me-1">arrow_back</span> Back to List
                     </a>
-                    <div>
+                    <div class="d-flex gap-2 flex-wrap">
                         @if($encounter->status === 'Registered')
                         <form action="{{ route('receptionist.encounters.forward-nurse', $encounter) }}" method="POST" class="d-inline">
                             @csrf
@@ -204,6 +228,22 @@
                         <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
                             <span class="material-symbols-outlined me-1">cancel</span> Cancel Encounter
                         </button>
+
+                        @elseif($encounter->status === 'Follow-up')
+                        <form action="{{ route('receptionist.encounters.reopen-followup', $encounter) }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-warning" onclick="return confirm('Reopen this follow-up encounter and send for triage?')">
+                                <span class="material-symbols-outlined me-1">refresh</span> Reopen &amp; Send for Triage
+                            </button>
+                        </form>
+
+                        @elseif(!in_array($encounter->status, ['Completed', 'Cancelled']))
+                        <form action="{{ route('receptionist.encounters.send-to-triage', $encounter) }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-info text-white" onclick="return confirm('Send this encounter back to nurse for re-triage?')">
+                                <span class="material-symbols-outlined me-1">vital_signs</span> Send to Triage
+                            </button>
+                        </form>
                         @endif
                     </div>
                 </div>

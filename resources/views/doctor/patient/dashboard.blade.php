@@ -112,7 +112,7 @@
         <div class="pb-1">
           <div class="fw-medium" style="font-size:12px">{{ $enc->nature_of_visit ?? 'Visit' }}</div>
           <div class="text-muted" style="font-size:11px">{{ $enc->visit_date?->format('d M Y') }}</div>
-          @php $sc=['Completed'=>'success','Cancelled'=>'danger','In Consultation'=>'primary','Triaged'=>'warning']; @endphp
+          @php $sc=['Completed'=>'success','Cancelled'=>'danger','In Consultation'=>'primary','Triaged'=>'warning','Follow-up'=>'warning','Admitted'=>'info','Referred'=>'danger']; @endphp
           <span class="badge bg-{{ $sc[$enc->status]??'secondary' }} bg-opacity-10 text-{{ $sc[$enc->status]??'secondary' }}" style="font-size:10px">{{ $enc->status }}</span>
         </div>
       </div>
@@ -163,7 +163,8 @@
       @forelse($pastConsultations as $c)
       <div class="d-flex justify-content-between align-items-start py-3 border-bottom flex-wrap gap-2">
         <div>
-          <div class="fw-medium">{{ $c->created_at->format('d M Y') }} <span class="badge bg-success bg-opacity-10 text-success ms-1">Completed</span></div>
+          @php $encOutcome = $c->encounter?->outcome ?? $c->encounter?->status ?? 'Completed'; $obg = match($encOutcome) { 'Follow-up' => 'warning', 'Admitted','Admit' => 'info', 'Referred','Refer' => 'danger', default => 'success' }; @endphp
+          <div class="fw-medium">{{ $c->created_at->format('d M Y') }} <span class="badge bg-{{ $obg }} bg-opacity-10 text-{{ $obg }} ms-1">{{ $encOutcome }}</span></div>
           <div class="text-muted small">Dr. {{ $c->doctor?->name ?? 'N/A' }}</div>
           @if($c->diagnoses->isNotEmpty())<div class="small mt-1 text-muted">{{ $c->diagnoses->map(fn($d)=>$d->icdCode?->description??($d->diagnosis_name??''))->filter()->join(' · ') }}</div>@endif
           @if($c->prescriptions->isNotEmpty())<div class="text-muted small"><span class="material-symbols-outlined align-middle" style="font-size:12px">medication</span> {{ $c->prescriptions->count() }} prescription(s)</div>@endif
@@ -366,7 +367,7 @@
 {{-- ENCOUNTERS --}}
 <div class="tab-pane fade" id="t-encounters">
   @forelse($encounters as $enc)
-  @php $sc=['Completed'=>'success','Cancelled'=>'danger','In Consultation'=>'primary','Triaged'=>'warning','Awaiting Lab'=>'info','Awaiting Pharmacy'=>'warning']; @endphp
+  @php $sc=['Completed'=>'success','Cancelled'=>'danger','In Consultation'=>'primary','Triaged'=>'warning','Awaiting Lab'=>'info','Awaiting Pharmacy'=>'warning','Follow-up'=>'warning','Admitted'=>'info','Referred'=>'danger']; @endphp
   <div class="card border-0 rounded-3 mb-3" style="border-left:4px solid var(--bs-{{ $sc[$enc->status]??'secondary' }}) !important">
     <div class="card-body p-3 d-flex justify-content-between align-items-start flex-wrap gap-2">
       <div>

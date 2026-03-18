@@ -58,6 +58,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/encounters', [ReceptionistController::class, 'encounters'])->name('encounters.index');
         Route::get('/encounters/{encounter}', [ReceptionistController::class, 'showEncounter'])->name('encounters.show');
         Route::post('/encounters/{encounter}/forward-nurse', [ReceptionistController::class, 'forwardToNurse'])->name('encounters.forward-nurse');
+        Route::post('/encounters/{encounter}/send-to-triage', [ReceptionistController::class, 'sendToTriage'])->name('encounters.send-to-triage');
+        Route::post('/encounters/{encounter}/reopen-followup', [ReceptionistController::class, 'reopenFollowUp'])->name('encounters.reopen-followup');
         Route::post('/encounters/{encounter}/cancel', [ReceptionistController::class, 'cancelEncounter'])->name('encounters.cancel');
         
         // History

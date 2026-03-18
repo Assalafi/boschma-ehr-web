@@ -24,10 +24,9 @@ class NurseController extends Controller
         $user = Auth::user();
         $facilityId = $user->facility_id;
         
-        // Pending triage (registered but no vitals)
+        // Pending triage (registered, including re-triage)
         $pendingTriage = Encounter::where('facility_id', $facilityId)
             ->where('status', Encounter::STATUS_REGISTERED)
-            ->whereDoesntHave('vitalSigns')
             ->count();
             
         // Completed triage today
@@ -99,7 +98,6 @@ class NurseController extends Controller
         $encounters = Encounter::with(['patient.beneficiary', 'program', 'vitalSigns'])
             ->where('facility_id', $user->facility_id)
             ->where('status', Encounter::STATUS_REGISTERED)
-            ->whereDoesntHave('vitalSigns')
             ->latest()
             ->paginate(15);
 
@@ -148,10 +146,12 @@ class NurseController extends Controller
             'overall_priority' => $request->overall_priority,
         ]);
 
-        // Update encounter status to Triaged
-        $encounter->update([
-            'status' => Encounter::STATUS_TRIAGED,
-        ]);
+        // Update encounter status to Triaged (skip for Admitted patients to preserve their status)
+        if ($encounter->status !== Encounter::STATUS_ADMITTED) {
+            $encounter->update([
+                'status' => Encounter::STATUS_TRIAGED,
+            ]);
+        }
 
         // Log the triage action
         \App\Models\EncounterAction::create([
@@ -165,6 +165,15 @@ class NurseController extends Controller
         $message = 'Patient triaged successfully.';
         if ($request->overall_priority === 'Red') {
             $message = 'Patient triaged as CRITICAL (Red). Doctor notified for urgent attention.';
+        }
+
+        // For admitted patients, redirect back to their admission page
+        if ($encounter->status === Encounter::STATUS_ADMITTED) {
+            $admission = $encounter->admissions()->where('is_active', true)->first();
+            if ($admission) {
+                return redirect()->route('nurse.admitted.show', $admission)
+                    ->with('success', 'Vital signs recorded for admitted patient.');
+            }
         }
 
         return redirect()->route('nurse.triage.index')
@@ -436,7 +445,7 @@ class NurseController extends Controller
             abort(403, 'You do not have permission to manage patients in this ward.');
         }
         
-        $admission->load(['encounter.patient', 'encounter.consultations', 'ward', 'bed', 'admittedBy']);
+        $admission->load(['encounter.patient', 'encounter.consultations', 'encounter.vitalSigns.takenBy', 'ward', 'bed', 'admittedBy']);
         
         // Only show nurse's assigned wards for transfer
         $wards = Ward::where('facility_id', $user->facility_id)

@@ -112,8 +112,67 @@
         </div>
         @endif
 
-        <!-- Ongoing Encounter Warning -->
+        <!-- Ongoing / Follow-up Encounter -->
         @if($ongoingEncounter)
+        @if($ongoingEncounter->status === 'Follow-up')
+        <div class="card border-0 rounded-3 mb-4" style="border-left:4px solid #d97706 !important">
+            <div class="card-header bg-warning bg-opacity-10 border-bottom p-4">
+                <h6 class="mb-0 fw-semibold d-flex align-items-center text-warning">
+                    <span class="material-symbols-outlined me-2">event</span>
+                    Follow-up Encounter
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-warning mb-3">
+                    <strong>This patient has a follow-up encounter.</strong> You can reopen it to continue on the same encounter instead of creating a new one.
+                </div>
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Status</span>
+                        <span class="badge bg-warning text-dark">Follow-up</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Nature of Visit</span>
+                        <span class="fw-medium">{{ $ongoingEncounter->nature_of_visit }}</span>
+                    </li>
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Date</span>
+                        <span class="fw-medium">{{ $ongoingEncounter->created_at->format('M d, Y H:i') }}</span>
+                    </li>
+                    @if($ongoingEncounter->follow_up_date)
+                    <li class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted">Follow-up Date</span>
+                        <span class="fw-medium">
+                            {{ \Carbon\Carbon::parse($ongoingEncounter->follow_up_date)->format('M d, Y') }}
+                            @if(\Carbon\Carbon::parse($ongoingEncounter->follow_up_date)->isPast())
+                                <span class="badge bg-danger ms-1">Overdue</span>
+                            @elseif(\Carbon\Carbon::parse($ongoingEncounter->follow_up_date)->isToday())
+                                <span class="badge bg-warning text-dark ms-1">Due Today</span>
+                            @endif
+                        </span>
+                    </li>
+                    @endif
+                    <li class="d-flex justify-content-between py-2">
+                        <span class="text-muted">Facility</span>
+                        <span class="fw-medium">{{ $ongoingEncounter->facility->name ?? 'N/A' }}</span>
+                    </li>
+                </ul>
+                <div class="mt-3 d-flex gap-2 flex-wrap">
+                    <form action="{{ route('receptionist.encounters.reopen-followup', $ongoingEncounter) }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-warning" onclick="return confirm('Reopen this follow-up encounter and send for triage?')">
+                            <span class="material-symbols-outlined align-middle me-1">refresh</span>
+                            Reopen &amp; Send for Triage
+                        </button>
+                    </form>
+                    <a href="{{ route('receptionist.encounters.show', $ongoingEncounter) }}" class="btn btn-outline-warning">
+                        <span class="material-symbols-outlined align-middle me-1">visibility</span>
+                        View Encounter
+                    </a>
+                </div>
+            </div>
+        </div>
+        @else
         <div class="card border-0 rounded-3 mb-4 border-danger">
             <div class="card-header bg-danger text-white p-4">
                 <h6 class="mb-0 fw-semibold d-flex align-items-center">
@@ -128,7 +187,8 @@
                 <ul class="list-unstyled mb-0">
                     <li class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted">Status</span>
-                        <span class="badge bg-warning text-dark">{{ $ongoingEncounter->status }}</span>
+                        @php $oebg = match($ongoingEncounter->status) { 'Triaged' => 'warning', 'In Consultation' => 'primary', 'Admitted' => 'info', default => 'secondary' }; @endphp
+                        <span class="badge bg-{{ $oebg }}">{{ $ongoingEncounter->status }}</span>
                     </li>
                     <li class="d-flex justify-content-between py-2 border-bottom">
                         <span class="text-muted">Nature of Visit</span>
@@ -143,14 +203,24 @@
                         <span class="fw-medium">{{ $ongoingEncounter->facility->name ?? 'N/A' }}</span>
                     </li>
                 </ul>
-                <div class="mt-3">
+                <div class="mt-3 d-flex gap-2 flex-wrap">
                     <a href="{{ route('receptionist.encounters.show', $ongoingEncounter) }}" class="btn btn-outline-danger">
                         <span class="material-symbols-outlined align-middle me-1">visibility</span>
                         View Ongoing Encounter
                     </a>
+                    @if(!in_array($ongoingEncounter->status, ['Registered', 'Admitted']))
+                    <form action="{{ route('receptionist.encounters.send-to-triage', $ongoingEncounter) }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-info text-white" onclick="return confirm('Send this encounter back to nurse for re-triage?')">
+                            <span class="material-symbols-outlined align-middle me-1">vital_signs</span>
+                            Send to Triage
+                        </button>
+                    </form>
+                    @endif
                 </div>
             </div>
         </div>
+        @endif
         @endif
 
         <!-- Registration Status -->
@@ -199,7 +269,8 @@
                                 <span class="fw-medium">{{ $enc->nature_of_visit }}</span>
                                 <br><small class="text-muted">{{ $enc->created_at->format('M d, Y') }} at {{ $enc->facility->name ?? 'N/A' }}</small>
                             </div>
-                            <span class="badge bg-{{ $enc->status === 'Completed' ? 'success' : 'secondary' }}">{{ $enc->status }}</span>
+                            @php $ebg = match($enc->status) { 'Completed' => 'success', 'Follow-up' => 'warning', 'Admitted' => 'info', 'Referred' => 'danger', 'In Consultation' => 'primary', 'Triaged' => 'warning', default => 'secondary' }; @endphp
+                            <span class="badge bg-{{ $ebg }}">{{ $enc->status }}</span>
                         </div>
                     </li>
                     @endforeach
