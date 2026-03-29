@@ -706,6 +706,16 @@ class DoctorController extends Controller
             $pendingLabOrders = ServiceOrder::where('encounter_id', $encounter->id)
                 ->where('status', 'pending')
                 ->exists();
+            
+            // Get details of pending lab orders for debugging
+            $pendingLabOrderDetails = ServiceOrder::where('encounter_id', $encounter->id)
+                ->where('status', 'pending')
+                ->get(['id', 'status', 'created_at']);
+            
+            // Also check for pending investigations
+            $pendingInvestigations = Investigation::where('encounter_id', $encounter->id)
+                ->where('status', 'pending')
+                ->exists();
 
             $pendingPharmacyOrders = Prescription::whereHas('consultation', function($q) use ($encounter) {
                     $q->where('encounter_id', $encounter->id);
@@ -714,9 +724,15 @@ class DoctorController extends Controller
                 ->exists();
 
             \Log::info('Pending lab orders: ' . ($pendingLabOrders ? 'YES' : 'NO'));
+            if ($pendingLabOrders) {
+                foreach ($pendingLabOrderDetails as $order) {
+                    \Log::info('  - ServiceOrder ID: ' . $order->id . ', Status: ' . $order->status . ', Created: ' . $order->created_at);
+                }
+            }
+            \Log::info('Pending investigations: ' . ($pendingInvestigations ? 'YES' : 'NO'));
             \Log::info('Pending pharmacy orders: ' . ($pendingPharmacyOrders ? 'YES' : 'NO'));
 
-            if ($pendingLabOrders) {
+            if ($pendingLabOrders || $pendingInvestigations) {
                 $message = 'Cannot discharge patient with pending laboratory orders. Please complete or cancel these orders first.';
                 \Log::info('Discharge blocked: ' . $message);
                 return response()->json(['error' => $message], 422);
