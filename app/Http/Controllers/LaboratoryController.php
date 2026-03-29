@@ -159,6 +159,13 @@ class LaboratoryController extends Controller
 
             $item->update(['status' => 'completed']);
 
+            // Check if all items in this service order are completed, then update the service order status
+            $serviceOrder = $item->serviceOrder;
+            $allItemsCompleted = $serviceOrder->items()->where('status', '!=', 'completed')->count() === 0;
+            if ($allItemsCompleted) {
+                $serviceOrder->update(['status' => 'completed']);
+            }
+
             DB::commit();
             return redirect()->route('laboratory.queue')->with('success', 'Result recorded successfully.');
         } catch (\Exception $e) {
@@ -274,6 +281,13 @@ class LaboratoryController extends Controller
 
         // Update order status
         $order->update(['status' => 'completed']);
+
+        // Check if all items in this service order are completed, then update the service order status
+        $serviceOrder = $order->serviceOrder;
+        $allItemsCompleted = $serviceOrder->items()->where('status', '!=', 'completed')->count() === 0;
+        if ($allItemsCompleted) {
+            $serviceOrder->update(['status' => 'completed']);
+        }
 
         if ($request->action === 'save_and_send') {
             // Notify doctor logic here
