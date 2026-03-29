@@ -703,19 +703,20 @@ class DoctorController extends Controller
         if ($request->outcome === 'Treated') {
             \Log::info('Checking pending orders for discharge - Encounter ID: ' . $encounter->id);
             
-            $pendingLabOrders = ServiceOrder::where('encounter_id', $encounter->id)
+            // Check for pending lab orders by looking at ServiceOrderItem statuses directly
+            $pendingLabOrderItems = ServiceOrderItem::whereHas('serviceOrder', function($q) use ($encounter) {
+                    $q->where('encounter_id', $encounter->id);
+                })
                 ->where('status', 'pending')
                 ->exists();
             
-            // Get details of pending lab orders for debugging
-            $pendingLabOrderDetails = ServiceOrder::where('encounter_id', $encounter->id)
+            // Get details of pending lab order items for debugging
+            $pendingLabOrderItemDetails = ServiceOrderItem::whereHas('serviceOrder', function($q) use ($encounter) {
+                    $q->where('encounter_id', $encounter->id);
+                })
                 ->where('status', 'pending')
-                ->get(['id', 'status', 'created_at']);
-            
-            // Also check for pending investigations
-            $pendingInvestigations = Investigation::where('encounter_id', $encounter->id)
-                ->where('status', 'pending')
-                ->exists();
+                ->with(['serviceOrder', 'serviceItem'])
+                ->get(['id', 'status', 'service_order_id', 'service_item_id']);
 
             $pendingPharmacyOrders = Prescription::whereHas('consultation', function($q) use ($encounter) {
                     $q->where('encounter_id', $encounter->id);
@@ -723,16 +724,15 @@ class DoctorController extends Controller
                 ->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL])
                 ->exists();
 
-            \Log::info('Pending lab orders: ' . ($pendingLabOrders ? 'YES' : 'NO'));
-            if ($pendingLabOrders) {
-                foreach ($pendingLabOrderDetails as $order) {
-                    \Log::info('  - ServiceOrder ID: ' . $order->id . ', Status: ' . $order->status . ', Created: ' . $order->created_at);
+            \Log::info('Pending lab order items: ' . ($pendingLabOrderItems ? 'YES' : 'NO'));
+            if ($pendingLabOrderItems) {
+                foreach ($pendingLabOrderItemDetails as $item) {
+                    \Log::info('  - ServiceOrderItem ID: ' . $item->id . ', Status: ' . $item->status . ', Service: ' . ($item->serviceItem->service->name ?? 'N/A'));
                 }
             }
-            \Log::info('Pending investigations: ' . ($pendingInvestigations ? 'YES' : 'NO'));
             \Log::info('Pending pharmacy orders: ' . ($pendingPharmacyOrders ? 'YES' : 'NO'));
 
-            if ($pendingLabOrders || $pendingInvestigations) {
+            if ($pendingLabOrderItems) {
                 $message = 'Cannot discharge patient with pending laboratory orders. Please complete or cancel these orders first.';
                 \Log::info('Discharge blocked: ' . $message);
                 return response()->json(['error' => $message], 422);
