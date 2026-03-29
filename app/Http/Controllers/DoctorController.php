@@ -139,10 +139,10 @@ class DoctorController extends Controller
         $base = Encounter::where('facility_id', $facilityId);
 
         $counts = [
-            'triaged'          => (clone $base)->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->whereDoesntHave('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->whereHas('vitalSigns')->count(),
-            'inConsultation'   => (clone $base)->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->where('status', '!=', Encounter::STATUS_ADMITTED)->count(),
-            'awaitingLab'      => (clone $base)->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'))->count(),
-            'awaitingPharmacy' => (clone $base)->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]))->count(),
+            'triaged'          => (clone $base)->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->where('status', '!=', Encounter::STATUS_COMPLETED)->whereDoesntHave('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->whereHas('vitalSigns')->count(),
+            'inConsultation'   => (clone $base)->where('status', '!=', Encounter::STATUS_COMPLETED)->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->where('status', '!=', Encounter::STATUS_ADMITTED)->count(),
+            'awaitingLab'      => (clone $base)->where('status', '!=', Encounter::STATUS_COMPLETED)->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'))->count(),
+            'awaitingPharmacy' => (clone $base)->where('status', '!=', Encounter::STATUS_COMPLETED)->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]))->count(),
             'admitted'         => (clone $base)->where('status', Encounter::STATUS_ADMITTED)->count(),
             'referred'         => (clone $base)->where('status', Encounter::STATUS_REFERRED)->count(),
             'followUp'         => (clone $base)->where('status', Encounter::STATUS_FOLLOW_UP)->count(),
@@ -173,23 +173,29 @@ class DoctorController extends Controller
         }
         switch ($tab) {
             case 'triaged':
-                $query->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])->whereDoesntHave('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->whereHas('vitalSigns');
+                $query->whereIn('status', [Encounter::STATUS_TRIAGED, Encounter::STATUS_REGISTERED, Encounter::STATUS_WAITING])
+                    ->where('status', '!=', Encounter::STATUS_COMPLETED)
+                    ->whereDoesntHave('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))
+                    ->whereHas('vitalSigns');
                 if ($request->filled('priority')) $query->whereHas('vitalSigns', fn($q) => $q->where('overall_priority', $request->priority));
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 $query->orderByRaw("(SELECT CASE WHEN LOWER(overall_priority) IN ('red','critical','high') THEN 1 WHEN LOWER(overall_priority) IN ('yellow','urgent','orange') THEN 2 ELSE 3 END FROM vital_signs WHERE encounter_id = encounters.id ORDER BY created_at DESC LIMIT 1)")->orderBy('created_at');
                 $partial = 'doctor.queue._triaged_table'; break;
             case 'inConsultation':
-                $query->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]));
+                $query->where('status', '!=', Encounter::STATUS_COMPLETED)
+                    ->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]));
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._consultation_table'; break;
             case 'awaitingLab':
-                $query->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'));
+                $query->where('status', '!=', Encounter::STATUS_COMPLETED)
+                    ->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'));
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._lab_table'; break;
             case 'awaitingPharmacy':
-                $query->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]));
+                $query->where('status', '!=', Encounter::STATUS_COMPLETED)
+                    ->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]));
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._pharmacy_table'; break;
