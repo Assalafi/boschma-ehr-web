@@ -463,7 +463,9 @@ class PharmacyController extends Controller
         }
 
         if ($request->filled('date')) {
-            $query->whereDate('updated_at', $request->date);
+            $query->whereHas('items.dispensations', function($q) use ($request) {
+                $q->whereDate('dispensing_date_time', $request->date);
+            });
         }
 
         $prescriptions = $query->paginate(20);
