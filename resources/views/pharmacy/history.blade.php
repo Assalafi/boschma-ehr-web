@@ -138,7 +138,8 @@
             <th style="text-align:center">Prescribed</th>
             <th style="text-align:center">Dispensed</th>
             <th>Dispensed By</th>
-            <th>Time</th>
+            <th>Prescribed Date</th>
+            <th>Dispensed Date</th>
             <th style="text-align:right">Cost</th>
             <th style="text-align:center">Status</th>
             <th style="text-align:center;width:90px">Actions</th>
@@ -155,6 +156,7 @@
             <td style="text-align:center"><span class="pharm-badge pharm-badge-blue">{{ $item->quantity }}</span></td>
             <td style="text-align:center"><span class="pharm-badge {{ $item->dispensations->sum('quantity_dispensed') > 0 ? 'pharm-badge-green' : 'pharm-badge-gray' }}">{{ $item->dispensations->sum('quantity_dispensed') }}</span></td>
             <td style="font-size:11px;color:#64748b">{{ $lastD?->dispensingOfficer?->name ?? '—' }}</td>
+            <td style="font-size:11px;color:#64748b">{{ $rx->created_at->format('d M Y H:i') }}</td>
             <td style="font-size:11px;color:#64748b">{{ $lastD ? $lastD->dispensing_date_time->format('d M Y H:i') : '—' }}</td>
             <td style="text-align:right;font-weight:600;color:#1e293b">₦ {{ number_format($item->dispensations->sum('cost_of_medication'), 2) }}</td>
             <td style="text-align:center">
@@ -181,7 +183,7 @@
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="6" style="text-align:right;font-weight:600;color:#64748b">Total Cost</td>
+            <td colspan="7" style="text-align:right;font-weight:600;color:#64748b">Total Cost</td>
             <td style="text-align:right;font-weight:700;color:#1e293b;font-size:13px">₦ {{ number_format($totalCost, 2) }}</td>
             <td></td>
           </tr>
