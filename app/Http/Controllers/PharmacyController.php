@@ -458,11 +458,8 @@ class PharmacyController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('consultation.encounter.patient', function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('file_number', 'like', "%{$search}%")
-                  ->orWhere('enrollee_number', 'like', "%{$search}%");
-            });
+            $query->whereHas('consultation.encounter.patient', fn($q) =>
+                $q->search($search));
         }
 
         if ($request->filled('date')) {
