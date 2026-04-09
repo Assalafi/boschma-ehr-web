@@ -23,6 +23,10 @@
 .pharm-btn-outline:hover { border-color: #cbd5e1; background: #f8fafc; color: #475569; }
 .pharm-btn-amber { background: #f59e0b; color: #fff; }
 .pharm-btn-amber:hover { background: #d97706; color: #fff; }
+.pharm-btn-danger-ghost { background: transparent; border: 1px solid #ef4444; color: #ef4444; }
+.pharm-btn-danger-ghost:hover { background: #ef4444; color: #fff; }
+.pharm-qty-input { width: 72px; padding: 6px 8px; border: 1.5px solid var(--pharm-border); border-radius: 8px; text-align: center; font-size: 13px; font-weight: 600; transition: border-color .2s; }
+.pharm-qty-input:focus { border-color: var(--pharm-primary); outline: none; box-shadow: 0 0 0 3px rgba(1,102,52,.12); }
 .pharm-search input, .pharm-search select { padding: 7px 12px; border: 1.5px solid var(--pharm-border); border-radius: 8px; font-size: 13px; transition: border-color .2s; }
 .pharm-search input:focus, .pharm-search select:focus { border-color: var(--pharm-primary); outline: none; box-shadow: 0 0 0 3px rgba(1,102,52,.1); }
 .rx-block { border-bottom: 1px solid var(--pharm-border); padding: 20px 24px; transition: background .1s; }
@@ -125,6 +129,7 @@
             <th>Time</th>
             <th style="text-align:right">Cost</th>
             <th style="text-align:center">Status</th>
+            <th style="text-align:center;width:90px">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -149,12 +154,22 @@
                 <span class="pharm-badge pharm-badge-amber">Pending</span>
               @endif
             </td>
+            <td style="text-align:center">
+              @if($item->dispensing_status === \App\Models\PrescriptionItem::STATUS_DISPENSED)
+                <button type="button" class="pharm-btn pharm-btn-amber" style="padding:4px 8px"
+                  onclick="showEditQuantity('{{ $item->id }}', {{ $item->quantity }}, {{ $item->dispensations->sum('quantity_dispensed') }})" title="Adjust qty">
+                  <span class="material-symbols-outlined" style="font-size:14px">edit</span>
+                </button>
+              @else
+                <span style="color:#cbd5e1">—</span>
+              @endif
+            </td>
           </tr>
           @endforeach
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="5" style="text-align:right;font-weight:600;color:#64748b">Total Cost</td>
+            <td colspan="6" style="text-align:right;font-weight:600;color:#64748b">Total Cost</td>
             <td style="text-align:right;font-weight:700;color:#1e293b;font-size:13px">₦ {{ number_format($totalCost, 2) }}</td>
             <td></td>
           </tr>
@@ -179,6 +194,110 @@
   </div>
   @endif
 </div>
+
+{{-- Edit Quantity Modal --}}
+<div class="modal fade" id="editQuantityModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="border-radius:16px;border:none;overflow:hidden">
+      <div class="modal-header" style="background:#f59e0b;color:#fff;border:none;padding:16px 20px">
+        <h6 class="modal-title fw-bold d-flex align-items-center gap-2" style="font-size:14px">
+          <span class="material-symbols-outlined" style="font-size:18px">edit</span> Adjust Quantity
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="padding:20px">
+        <div class="d-flex gap-3 mb-3" style="font-size:12px">
+          <div class="text-center flex-fill p-2 rounded" style="background:#f8fafc">
+            <div style="color:#64748b;margin-bottom:2px">Prescribed</div>
+            <div id="modal-prescribed-qty" style="font-weight:700;font-size:18px;color:#1e293b">0</div>
+          </div>
+          <div class="text-center flex-fill p-2 rounded" style="background:#f0fdf4">
+            <div style="color:#64748b;margin-bottom:2px">Dispensed</div>
+            <div id="modal-current-qty" style="font-weight:700;font-size:18px;color:#059669">0</div>
+          </div>
+        </div>
+        <label style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px;display:block">New Total Quantity</label>
+        <input type="number" id="new-quantity" class="pharm-qty-input" style="width:100%;padding:10px;font-size:16px" min="0" max="999">
+        <p style="font-size:11px;color:#94a3b8;margin-top:6px;margin-bottom:0">Enter the new total dispensed amount</p>
+      </div>
+      <div class="modal-footer" style="border-top:1px solid #f1f5f9;padding:12px 20px">
+        <button type="button" class="pharm-btn pharm-btn-outline" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="pharm-btn pharm-btn-primary" onclick="updateQuantity()">
+          <span class="material-symbols-outlined" style="font-size:14px">check</span> Update
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const _itemUrl  = '{{ url("pharmacy/item") }}';
+const _csrf     = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+let _editItemId = null;
+
+/* ── Toast ──────────────────────────────────────────── */
+function showToast(type, msg) {
+    const colors = { success:'#059669', danger:'#dc2626', warning:'#d97706', info:'#2563eb' };
+    const icons  = { success:'check_circle', danger:'error', warning:'warning', info:'info' };
+    const id = 'toast-' + Date.now();
+    
+    // Create toast container if it doesn't exist
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;max-width:400px';
+        document.body.appendChild(container);
+    }
+    
+    container.insertAdjacentHTML('beforeend',
+        `<div id="${id}" style="background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:10px;animation:slideIn .3s ease;border-left:4px solid ${colors[type]||'#64748b'}">
+            <span class="material-symbols-outlined" style="font-size:20px;color:${colors[type]||'#64748b'}">${icons[type]||'info'}</span>
+            <span style="font-size:13px;color:#1e293b;flex:1">${msg}</span>
+            <span class="material-symbols-outlined" style="font-size:16px;color:#94a3b8;cursor:pointer" onclick="this.parentElement.remove()">close</span>
+        </div>`);
+    setTimeout(() => { const el = document.getElementById(id); if(el) { el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); } }, 5000);
+}
+
+/* ── Edit Quantity ─────────────────────────────────── */
+function showEditQuantity(itemId, prescribedQty, currentQty) {
+    _editItemId = itemId;
+    document.getElementById('modal-prescribed-qty').textContent = prescribedQty;
+    document.getElementById('modal-current-qty').textContent    = currentQty;
+    document.getElementById('new-quantity').value               = currentQty;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('editQuantityModal')).show();
+}
+
+function updateQuantity() {
+    const qty = parseInt(document.getElementById('new-quantity').value);
+    if (isNaN(qty) || qty < 0) { showToast('danger', 'Please enter a valid quantity.'); return; }
+    bootstrap.Modal.getInstance(document.getElementById('editQuantityModal')).hide();
+    doItemAction(_editItemId, 'update', qty);
+}
+
+async function doItemAction(itemId, action, quantity = null) {
+    const body = { action };
+    if (quantity !== null) body.quantity = quantity;
+
+    try {
+        const res = await fetch(`${_itemUrl}/${itemId}/dispense`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': _csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        showToast('success', data.message);
+        setTimeout(() => window.location.reload(), 1000);
+    } catch(e) {
+        showToast('danger', e.message || 'Action failed.');
+    }
+}
+</script>
+
+<style>
+@keyframes slideIn { from { transform:translateX(100%);opacity:0 } to { transform:translateX(0);opacity:1 } }
+</style>
 
 </div>
 @endsection
