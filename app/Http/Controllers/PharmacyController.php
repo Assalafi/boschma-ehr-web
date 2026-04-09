@@ -456,6 +456,15 @@ class PharmacyController extends Controller
         ->whereIn('status', [Prescription::STATUS_DISPENSED, Prescription::STATUS_PARTIAL])
         ->latest();
 
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('consultation.encounter.patient', function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('file_number', 'like', "%{$search}%")
+                  ->orWhere('enrollee_number', 'like', "%{$search}%");
+            });
+        }
+
         if ($request->filled('date')) {
             $query->whereDate('updated_at', $request->date);
         }

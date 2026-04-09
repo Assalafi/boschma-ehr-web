@@ -27,7 +27,15 @@
 .pharm-btn-danger-ghost:hover { background: #ef4444; color: #fff; }
 .pharm-qty-input { width: 72px; padding: 6px 8px; border: 1.5px solid var(--pharm-border); border-radius: 8px; text-align: center; font-size: 13px; font-weight: 600; transition: border-color .2s; }
 .pharm-qty-input:focus { border-color: var(--pharm-primary); outline: none; box-shadow: 0 0 0 3px rgba(1,102,52,.12); }
+.pharm-search { position:relative; min-width:200px; max-width:320px; flex-shrink:0; }
+.pharm-search .material-symbols-outlined { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:18px; color:#94a3b8; pointer-events:none; }
 .pharm-search input, .pharm-search select { padding: 7px 12px; border: 1.5px solid var(--pharm-border); border-radius: 8px; font-size: 13px; transition: border-color .2s; }
+.pharm-search input { padding-left:34px; }
+.pharm-pagination { display:flex; align-items:center; justify-content:center; gap:4px; padding:12px 20px; border-top:1px solid var(--pharm-border); }
+.pharm-page-btn { display:inline-flex; align-items:center; justify-content:center; min-width:32px; height:32px; padding:0 8px; border:1.5px solid var(--pharm-border); border-radius:6px; font-size:12px; font-weight:600; color:#475569; background:#fff; cursor:pointer; transition:all .15s; text-decoration:none; }
+.pharm-page-btn:hover { border-color:#cbd5e1; background:#f8fafc; color:#475569; text-decoration:none; }
+.pharm-page-btn.active { background:var(--pharm-primary); border-color:var(--pharm-primary); color:#fff; }
+.pharm-page-btn:disabled { opacity:.4; cursor:not-allowed; }
 .pharm-search input:focus, .pharm-search select:focus { border-color: var(--pharm-primary); outline: none; box-shadow: 0 0 0 3px rgba(1,102,52,.1); }
 .rx-block { border-bottom: 1px solid var(--pharm-border); padding: 20px 24px; transition: background .1s; }
 .rx-block:last-child { border-bottom: none; }
@@ -74,12 +82,16 @@
       <span class="material-symbols-outlined" style="font-size:16px;color:var(--pharm-primary)">history</span>
       Completed Dispenses
     </div>
-    <form method="GET" action="{{ route('pharmacy.history') }}" class="pharm-search d-flex gap-2 align-items-center">
-      <input type="date" name="date" value="{{ request('date') }}" style="min-width:160px">
+    <form method="GET" action="{{ route('pharmacy.history') }}" class="d-flex gap-2 align-items-center flex-wrap">
+      <div class="pharm-search">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search name, patient no, or boschma no...">
+      </div>
+      <input type="date" name="date" value="{{ request('date') }}" style="min-width:160px;padding:7px 12px;border:1.5px solid var(--pharm-border);border-radius:8px;font-size:13px;">
       <button type="submit" class="pharm-btn pharm-btn-primary" style="padding:7px 14px">
         <span class="material-symbols-outlined" style="font-size:15px">filter_alt</span> Filter
       </button>
-      @if(request('date'))
+      @if(request()->hasAny(['search', 'date']))
         <a href="{{ route('pharmacy.history') }}" class="pharm-btn pharm-btn-outline" style="padding:7px 12px">Clear</a>
       @endif
     </form>
@@ -189,8 +201,8 @@
   @endforelse
 
   @if($prescriptions->hasPages())
-  <div style="padding:14px 20px;border-top:1px solid var(--pharm-border);display:flex;justify-content:flex-end">
-    {{ $prescriptions->withQueryString()->links() }}
+  <div class="pharm-pagination">
+    {{ $prescriptions->withQueryString()->links('pagination::bootstrap-4') }}
   </div>
   @endif
 </div>
