@@ -147,7 +147,20 @@ class DoctorController extends Controller
             'awaitingLab'      => (clone $base)->where('status', '!=', Encounter::STATUS_COMPLETED)->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'))->count(),
             'awaitingPharmacy' => (clone $base)->where('status', '!=', Encounter::STATUS_COMPLETED)->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]))->count(),
             'admitted'         => (clone $base)->where('status', Encounter::STATUS_ADMITTED)
-                                ->when(!empty($doctorWardIds), fn($q) => $q->whereHas('admission', fn($subQ) => $subQ->whereIn('ward_id', $doctorWardIds)))
+                                ->where(function($q) use ($user, $doctorWardIds) {
+                                    // Patients admitted by this doctor
+                                    $q->whereHas('admission', function($subQ) use ($user) {
+                                        $subQ->where('admitted_by', $user->id);
+                                    })
+                                    // OR patients in doctor's assigned wards
+                                    ->orWhere(function($subQ) use ($doctorWardIds) {
+                                        if (!empty($doctorWardIds)) {
+                                            $subQ->whereHas('admission', function($wardQ) use ($doctorWardIds) {
+                                                $wardQ->whereIn('ward_id', $doctorWardIds);
+                                            });
+                                        }
+                                    });
+                                })
                                 ->count(),
             'referred'         => (clone $base)->where('status', Encounter::STATUS_REFERRED)->count(),
             'followUp'         => (clone $base)->where('status', Encounter::STATUS_FOLLOW_UP)->count(),
@@ -212,10 +225,23 @@ class DoctorController extends Controller
                 $query->where('status', Encounter::STATUS_ADMITTED);
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 if ($request->filled('ward')) $query->whereHas('admission', fn($q) => $q->where('ward_id', $request->ward));
-                // Filter by doctor's assigned wards
-                if (!empty($doctorWardIds)) {
-                    $query->whereHas('admission', fn($q) => $q->whereIn('ward_id', $doctorWardIds));
-                }
+                
+                // Filter admitted patients: doctor can see patients they admitted OR patients in their assigned wards
+                $query->where(function($q) use ($user, $doctorWardIds) {
+                    // Patients admitted by this doctor
+                    $q->whereHas('admission', function($subQ) use ($user) {
+                        $subQ->where('admitted_by', $user->id);
+                    })
+                    // OR patients in doctor's assigned wards
+                    ->orWhere(function($subQ) use ($doctorWardIds) {
+                        if (!empty($doctorWardIds)) {
+                            $subQ->whereHas('admission', function($wardQ) use ($doctorWardIds) {
+                                $wardQ->whereIn('ward_id', $doctorWardIds);
+                            });
+                        }
+                    });
+                });
+                
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._admitted_table'; break;
             case 'referred':
