@@ -29,13 +29,13 @@ class PharmacyController extends Controller
         $user       = Auth::user();
         $facilityId = $user->facility_id;
 
-        $pendingPrescriptions = Prescription::whereHas('consultation.encounter', fn($q) =>
+        $pendingPrescriptions = Prescription::whereHas('prescribedBy', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->where('status', Prescription::STATUS_PENDING)
             ->count();
 
         $todayDispensations = PharmacyDispensation::whereDate('dispensing_date_time', today())
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('dispensingOfficer', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->count();
 
@@ -48,7 +48,7 @@ class PharmacyController extends Controller
             ->count();
 
         $todayRevenue = PharmacyDispensation::whereDate('dispensing_date_time', today())
-            ->whereHas('prescriptionItem.prescription.consultation.encounter', fn($q) =>
+            ->whereHas('dispensingOfficer', fn($q) =>
                 $q->where('facility_id', $facilityId))
             ->sum('cost_of_medication');
 
@@ -76,7 +76,7 @@ class PharmacyController extends Controller
             'items.drug',
         ])
         ->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL])
-        ->whereHas('consultation.encounter', function($q) use ($facilityId) {
+        ->whereHas('prescribedBy', function($q) use ($facilityId) {
             $q->where('facility_id', $facilityId);
         })
         ->whereHas('items', function($q) {
@@ -452,7 +452,7 @@ class PharmacyController extends Controller
             'items.drug',
             'items.dispensations.dispensingOfficer:id,name',
         ])
-        ->whereHas('consultation.encounter', fn($q) => $q->where('facility_id', $facilityId))
+        ->whereHas('prescribedBy', fn($q) => $q->where('facility_id', $facilityId))
         ->whereIn('status', [Prescription::STATUS_DISPENSED, Prescription::STATUS_PARTIAL])
         ->latest();
 

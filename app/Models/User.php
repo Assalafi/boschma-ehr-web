@@ -146,6 +146,15 @@ class User extends Authenticatable
             ->wherePivot('is_active', true);
     }
 
+    /**
+     * Get wards assigned to this doctor.
+     */
+    public function doctorWards()
+    {
+        return $this->belongsToMany(Ward::class, 'doctor_ward')
+            ->wherePivot('is_active', true);
+    }
+
     protected static function boot()
     {
         parent::boot();

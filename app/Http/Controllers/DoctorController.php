@@ -136,6 +136,9 @@ class DoctorController extends Controller
         $user       = Auth::user();
         $facilityId = $user->facility_id;
 
+        // Get doctor's assigned wards
+        $doctorWardIds = $user->doctorWards()->pluck('wards.id')->toArray();
+
         $base = Encounter::where('facility_id', $facilityId);
 
         $counts = [
@@ -143,7 +146,9 @@ class DoctorController extends Controller
             'inConsultation'   => (clone $base)->where('status', '!=', Encounter::STATUS_COMPLETED)->whereHas('consultations', fn($q) => $q->whereNotIn('status', [ClinicalConsultation::STATUS_COMPLETED]))->where('status', '!=', Encounter::STATUS_ADMITTED)->count(),
             'awaitingLab'      => (clone $base)->where('status', '!=', Encounter::STATUS_COMPLETED)->whereHas('serviceOrders', fn($q) => $q->where('status', 'pending'))->count(),
             'awaitingPharmacy' => (clone $base)->where('status', '!=', Encounter::STATUS_COMPLETED)->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]))->count(),
-            'admitted'         => (clone $base)->where('status', Encounter::STATUS_ADMITTED)->count(),
+            'admitted'         => (clone $base)->where('status', Encounter::STATUS_ADMITTED)
+                                ->when(!empty($doctorWardIds), fn($q) => $q->whereHas('admission', fn($subQ) => $subQ->whereIn('ward_id', $doctorWardIds)))
+                                ->count(),
             'referred'         => (clone $base)->where('status', Encounter::STATUS_REFERRED)->count(),
             'followUp'         => (clone $base)->where('status', Encounter::STATUS_FOLLOW_UP)->count(),
             'completedToday'   => (clone $base)->whereNotIn('status', [Encounter::STATUS_REFERRED, Encounter::STATUS_FOLLOW_UP, Encounter::STATUS_ADMITTED])->whereHas('consultations', fn($q) => $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', today()))->count(),
@@ -167,6 +172,10 @@ class DoctorController extends Controller
         $tab = $request->get('tab', 'triaged');
         $perPage = min(max((int) $request->get('per_page', 15), 1), 100);
         $search = trim($request->get('search', ''));
+        
+        // Get doctor's assigned wards
+        $doctorWardIds = $user->doctorWards()->pluck('wards.id')->toArray();
+        
         $query = Encounter::with(['patient', 'vitalSigns', 'program', 'consultations', 'admission.ward', 'admission.bed'])->where('facility_id', $facilityId);
         if ($search) {
             $query->whereHas('patient', fn($q) => $q->search($search));
@@ -203,6 +212,10 @@ class DoctorController extends Controller
                 $query->where('status', Encounter::STATUS_ADMITTED);
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 if ($request->filled('ward')) $query->whereHas('admission', fn($q) => $q->where('ward_id', $request->ward));
+                // Filter by doctor's assigned wards
+                if (!empty($doctorWardIds)) {
+                    $query->whereHas('admission', fn($q) => $q->whereIn('ward_id', $doctorWardIds));
+                }
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._admitted_table'; break;
             case 'referred':
