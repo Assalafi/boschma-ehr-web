@@ -866,9 +866,30 @@ class DoctorController extends Controller
                       . ($bed ? ', ' . $bed->name : '')
                       . '. Type: ' . ucfirst($request->admission_type) . '.';
             } else {
+                // Check if patient has an active admission and discharge them
+                $activeAdmission = Admission::where('encounter_id', $encounter->id)
+                    ->where('is_active', true)
+                    ->first();
+                
+                if ($activeAdmission) {
+                    // Discharge the patient from admission
+                    $activeAdmission->update([
+                        'is_active' => false,
+                        'discharge_date' => now(),
+                    ]);
+                    
+                    // Free up the bed if one was assigned
+                    if ($activeAdmission->bed_id) {
+                        Bed::where('id', $activeAdmission->bed_id)->update(['is_occupied' => false]);
+                    }
+                    
+                    $admissionInfo = ' Discharged from ' . ($activeAdmission->ward->name ?? 'ward') . 
+                                   ($activeAdmission->bed ? ', ' . $activeAdmission->bed->name : '') . '.';
+                }
+                
                 $desc = match($outcome) {
-                    'Treated'   => 'Patient treated and discharged.',
-                    'Follow-up' => 'Patient scheduled for follow-up.' . ($request->follow_up_date ? ' Date: ' . $request->follow_up_date : ''),
+                    'Treated'   => 'Patient treated and discharged.' . ($admissionInfo ?? ''),
+                    'Follow-up' => 'Patient scheduled for follow-up.' . ($request->follow_up_date ? ' Date: ' . $request->follow_up_date : '') . ($admissionInfo ?? ''),
                 };
             }
 
