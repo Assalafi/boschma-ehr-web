@@ -47,6 +47,11 @@
                 </div>
 
                 <div class="row g-3 mb-3">
+                    <!-- Admission Date -->
+                    <div class="col-md-4">
+                        <label class="form-label small fw-medium text-muted">Admission Date <span class="text-danger">*</span></label>
+                        <input type="datetime-local" id="admissionDate" class="form-select border-0 bg-light rounded-3" value="{{ now()->format('Y-m-d\TH:i') }}">
+                    </div>
                     <!-- Admission Type -->
                     <div class="col-md-4">
                         <label class="form-label small fw-medium text-muted">Admission Type <span class="text-danger">*</span></label>
@@ -67,6 +72,9 @@
                             @endforeach
                         </select>
                     </div>
+                </div>
+
+                <div class="row g-3 mb-3">
                     <!-- Room -->
                     <div class="col-md-4">
                         <label class="form-label small fw-medium text-muted">Room</label>
@@ -74,9 +82,6 @@
                             <option value="">Select ward first...</option>
                         </select>
                     </div>
-                </div>
-
-                <div class="row g-3 mb-3">
                     <!-- Bed -->
                     <div class="col-md-4">
                         <label class="form-label small fw-medium text-muted">Bed</label>
@@ -85,7 +90,7 @@
                         </select>
                     </div>
                     <!-- Condition on Admission -->
-                    <div class="col-md-8">
+                    <div class="col-md-4">
                         <label class="form-label small fw-medium text-muted">Condition on Admission</label>
                         <input type="text" id="conditionOnAdmission" class="form-control border-0 bg-light rounded-3" placeholder="e.g. Stable, Critical, Conscious and alert...">
                     </div>
@@ -265,6 +270,7 @@ async function _submitDischarge() {
             };
             // Add admission fields
             if (outcome === 'Admit') {
+                body.admission_date         = document.getElementById('admissionDate').value;
                 body.ward_id                = document.getElementById('admitWard').value;
                 body.bed_id                 = document.getElementById('admitBed').value || null;
                 body.admission_type         = document.getElementById('admissionType').value;

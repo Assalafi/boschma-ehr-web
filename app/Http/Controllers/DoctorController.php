@@ -735,6 +735,7 @@ class DoctorController extends Controller
 
         // Admission-specific validation
         if ($request->outcome === 'Admit') {
+            $rules['admission_date']         = 'required|date';
             $rules['ward_id']                = 'required|exists:wards,id';
             $rules['bed_id']                 = 'nullable|exists:beds,id';
             $rules['admission_type']         = 'required|in:emergency,elective,observation';
@@ -847,7 +848,7 @@ class DoctorController extends Controller
                     'bed_id'                 => $request->bed_id,
                     'consultant_id'          => Auth::id(),
                     'admitted_by'            => Auth::id(),
-                    'admission_date'         => now(),
+                    'admission_date'         => $request->admission_date,
                     'admission_type'         => $request->admission_type,
                     'condition_on_admission' => $request->condition_on_admission,
                     'admission_notes'        => $request->admission_notes,
