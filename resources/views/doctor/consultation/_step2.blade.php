@@ -141,8 +141,8 @@
     <div class="consult-footer">
         <button type="button" class="btn-step-prev btn" onclick="prevStep()">Previous</button>
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-success px-4 rounded-3" id="sendToLabBtn" onclick="sendToLab()" style="background:#016634;border:none">
-                <span class="material-symbols-outlined align-middle me-1" style="font-size:16px">send</span> Send to Lab
+            <button type="button" class="btn btn-success px-4 rounded-3" id="sendToLabBtn" onclick="sendToLab()" style="background:#016634;color:white;border:none">
+                <span class="material-symbols-outlined align-middle me-1" style="font-size:16px; color:white">send</span> Send to Lab
             </button>
             <button type="button" class="btn-step-next btn" onclick="nextStep()">Next</button>
         </div>

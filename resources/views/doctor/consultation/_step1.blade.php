@@ -163,6 +163,41 @@ async function saveAndContinueStep1() {
         btn.innerHTML = originalContent;
     }
 }
+
+// Reset button state when step becomes visible
+function resetStep1ButtonState() {
+    const saveBtn = document.querySelector('button[onclick="saveAndContinueStep1()"]');
+    if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span class="material-symbols-outlined align-middle me-1" style="font-size:16px">save</span> Save and Continue';
+    }
+}
+
+// Add event listener for step visibility
+document.addEventListener('DOMContentLoaded', function() {
+    // Reset button state when step 1 becomes active
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const step1 = document.getElementById('step1');
+                if (step1 && step1.classList.contains('active')) {
+                    resetStep1ButtonState();
+                }
+            }
+        });
+    });
+    
+    // Observe step 1 for class changes
+    const step1 = document.getElementById('step1');
+    if (step1) {
+        observer.observe(step1, { attributes: true });
+    }
+    
+    // Initial reset in case step is already visible
+    if (step1 && step1.classList.contains('active')) {
+        resetStep1ButtonState();
+    }
+});
 </script>
 
 <script>
