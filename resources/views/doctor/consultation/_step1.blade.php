@@ -33,7 +33,7 @@
         <div class="p-3">
             <textarea name="presenting_complaints" id="presenting_complaints" class="form-control border-0 bg-light rounded-3" rows="4"
                 placeholder="Describe the patient's presenting complaints, onset, duration, severity..."
-                style="resize:none">{{ old('presenting_complaints', $savedData['presenting_complaints'] ?? '') }}</textarea>
+                style="resize:none" required>{{ old('presenting_complaints', $savedData['presenting_complaints'] ?? '') }}</textarea>
         </div>
     </div>
 
@@ -45,7 +45,7 @@
         </div>
         <div class="p-3">
             <textarea name="physical_examination" id="physical_examination" class="form-control border-0 bg-light rounded-3" rows="5"
-                placeholder="Document all examination findings here...">{{ old('physical_examination', $savedData['physical_examination'] ?? '') }}</textarea>
+                placeholder="Document all examination findings here..." required>{{ old('physical_examination', $savedData['physical_examination'] ?? '') }}</textarea>
         </div>
     </div>
 
@@ -76,12 +76,9 @@
 
     <div class="consult-footer">
         <a href="{{ route('doctor.queue') }}" class="btn-step-prev btn">Back to Queue</a>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-secondary px-4 rounded-3" id="step1SaveBtn" onclick="updateClinicalAssessment()">
-                <span class="material-symbols-outlined align-middle me-1" style="font-size:16px">update</span> Update Assessment
-            </button>
-            <button type="button" class="btn-step-next btn" onclick="nextStep()">Next</button>
-        </div>
+        <button type="button" class="btn-step-next btn" onclick="saveAndContinueStep1()">
+            <span class="material-symbols-outlined align-middle me-1" style="font-size:16px">save</span> Save and Continue
+        </button>
     </div>
 </div>
 
@@ -119,6 +116,51 @@ async function updateClinicalAssessment() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<span class="material-symbols-outlined align-middle me-1" style="font-size:16px">save</span> Save';
+    }
+}
+
+async function saveAndContinueStep1() {
+    const complaints = document.getElementById('presenting_complaints')?.value?.trim();
+    const physicalExam = document.getElementById('physical_examination')?.value?.trim();
+    
+    // Validate required fields
+    if (!complaints) {
+        _showToast('warning', 'Please enter presenting complaints before continuing.');
+        return;
+    }
+    
+    if (!physicalExam) {
+        _showToast('warning', 'Please enter physical examination findings before continuing.');
+        return;
+    }
+
+    // Show loading state
+    const btn = event.target;
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+    const body = new FormData();
+    body.append('presenting_complaints', complaints);
+    body.append('physical_examination', physicalExam);
+    _provSelected.forEach(id => body.append('provisional_diagnosis[]', id));
+
+    try {
+        const res  = await fetch(_step1SaveUrl, {
+            method: 'POST',
+            body,
+            headers: { 'X-CSRF-TOKEN': _step1Csrf, 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        _showToast('success', data.message || 'Clinical assessment saved successfully.');
+        
+        // Proceed to next step after successful save
+        setTimeout(() => nextStep(), 500);
+    } catch (e) {
+        _showToast('danger', e.message || 'Failed to save assessment.');
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
     }
 }
 </script>
