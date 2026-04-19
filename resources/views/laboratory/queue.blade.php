@@ -189,17 +189,38 @@
             @endif
 
             {{-- Page Numbers --}}
-            @foreach($elements = $orders->links()->elements as $element)
-                @if(is_string($element))
-                    <span class="lab-page-btn disabled">{{ $element }}</span>
-                @elseif(isset($element['url']))
-                    <a href="{{ $element['url'] }}" class="lab-page-btn {{ $element['active'] ? 'active' : '' }}">
-                        {{ $element['page'] }}
-                    </a>
-                @else
+            @php
+                $onEachSide = 3;
+                $currentPage = $orders->currentPage();
+                $lastPage = $orders->lastPage();
+                $start = max(1, $currentPage - $onEachSide);
+                $end = min($lastPage, $currentPage + $onEachSide);
+            @endphp
+            
+            {{-- First page --}}
+            @if($start > 1)
+                <a href="{{ $orders->url(1) }}" class="lab-page-btn">1</a>
+                @if($start > 2)
                     <span class="lab-page-btn disabled">...</span>
                 @endif
-            @endforeach
+            @endif
+            
+            {{-- Page range --}}
+            @for($i = $start; $i <= $end; $i++)
+                @if($i == $currentPage)
+                    <span class="lab-page-btn active">{{ $i }}</span>
+                @else
+                    <a href="{{ $orders->url($i) }}" class="lab-page-btn">{{ $i }}</a>
+                @endif
+            @endfor
+            
+            {{-- Last page --}}
+            @if($end < $lastPage)
+                @if($end < $lastPage - 1)
+                    <span class="lab-page-btn disabled">...</span>
+                @endif
+                <a href="{{ $orders->url($lastPage) }}" class="lab-page-btn">{{ $lastPage }}</a>
+            @endif
 
             {{-- Next Button --}}
             @if($orders->hasMorePages())
