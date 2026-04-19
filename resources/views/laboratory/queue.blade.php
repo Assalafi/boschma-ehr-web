@@ -68,11 +68,17 @@
 
 <div class="lab-card" style="border-top-left-radius:0">
     <div class="search-bar">
-        <form method="GET" action="{{ route('laboratory.queue') }}" class="d-flex gap-2 w-100">
+        <form method="GET" action="{{ route('laboratory.queue') }}" class="d-flex gap-2 w-100 align-items-center">
             <input type="hidden" name="tab" value="{{ $tab }}">
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search patient name or file number…">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search patient name or file number…" style="max-width:300px">
+            <select name="program" class="form-select form-select-sm" style="max-width:200px">
+                <option value="">All Programs</option>
+                @foreach($programs as $id=>$name)
+                <option value="{{ $id }}" {{ request('program') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                @endforeach
+            </select>
             <button type="submit" class="lab-btn lab-btn-primary"><span class="material-symbols-outlined" style="font-size:16px">search</span></button>
-            @if(request('search'))
+            @if(request('search') || request('program'))
             <a href="{{ route('laboratory.queue', ['tab'=>$tab]) }}" class="lab-btn lab-btn-outline">Clear</a>
             @endif
         </form>

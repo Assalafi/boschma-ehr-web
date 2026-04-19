@@ -47,6 +47,15 @@
             <input type="text" name="search" value="{{ request('search') }}" placeholder="Patient name or file no." style="width:220px">
         </div>
         <div>
+            <label>Program</label>
+            <select name="program" style="width:180px">
+                <option value="">All Programs</option>
+                @foreach($programs as $id=>$name)
+                <option value="{{ $id }}" {{ request('program') == $id ? 'selected' : '' }}>{{ $name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
             <label>From</label>
             <input type="date" name="date_from" value="{{ request('date_from') }}" style="width:160px">
         </div>
@@ -56,7 +65,7 @@
         </div>
         <div class="d-flex gap-2" style="padding-bottom:1px">
             <button type="submit" class="lab-btn lab-btn-primary"><span class="material-symbols-outlined" style="font-size:16px">search</span> Filter</button>
-            @if(request()->hasAny(['search','date_from','date_to']))
+            @if(request()->hasAny(['search','program','date_from','date_to']))
             <a href="{{ route('laboratory.history') }}" class="lab-btn lab-btn-outline">Clear</a>
             @endif
         </div>

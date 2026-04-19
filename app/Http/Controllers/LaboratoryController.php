@@ -83,6 +83,13 @@ class LaboratoryController extends Controller
             });
         }
 
+        // Add program filtering
+        if ($request->filled('program')) {
+            $query->whereHas('serviceOrder.encounter', function ($q) use ($request) {
+                $q->where('program_id', $request->program);
+            });
+        }
+
         $orders = $query->latest()->paginate(20)->appends($request->query());
 
         $base = $this->labBaseQuery($labCatIds);
@@ -92,7 +99,12 @@ class LaboratoryController extends Controller
             'completed'   => (clone $base)->where('status', 'completed')->count(),
         ];
 
-        return view('laboratory.queue', compact('orders', 'tab', 'counts'));
+        // Get programs for filter dropdown
+        $programs = \App\Models\Program::where('facility_id', $facilityId)
+            ->orderBy('name')
+            ->pluck('name', 'id');
+
+        return view('laboratory.queue', compact('orders', 'tab', 'counts', 'programs'));
     }
 
     public function orderShow(ServiceOrderItem $item): \Illuminate\View\View
@@ -201,6 +213,13 @@ class LaboratoryController extends Controller
             });
         }
 
+        // Add program filtering
+        if ($request->filled('program')) {
+            $query->whereHas('serviceOrder.encounter', function ($q) use ($request) {
+                $q->where('program_id', $request->program);
+            });
+        }
+
         if ($request->date_from) {
             $query->whereDate('updated_at', '>=', $request->date_from);
         }
@@ -210,7 +229,12 @@ class LaboratoryController extends Controller
 
         $orders = $query->latest()->paginate(20)->appends($request->query());
 
-        return view('laboratory.history', compact('orders'));
+        // Get programs for filter dropdown
+        $programs = \App\Models\Program::where('facility_id', $facilityId)
+            ->orderBy('name')
+            ->pluck('name', 'id');
+
+        return view('laboratory.history', compact('orders', 'programs'));
     }
 
     /* ── Legacy routes kept for backward compat ── */
