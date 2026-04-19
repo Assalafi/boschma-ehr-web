@@ -21,6 +21,11 @@
 .lab-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;transition:all .15s;text-decoration:none}
 .lab-btn-primary{background:var(--lab);color:#fff}.lab-btn-primary:hover{background:var(--lab-dk);color:#fff}
 .lab-btn-outline{background:#fff;color:var(--lab);border:1.5px solid var(--lab)}.lab-btn-outline:hover{background:var(--lab-lt);color:var(--lab)}
+.lab-pagination{display:flex;align-items:center;justify-content:center;gap:4px;padding:12px 20px;border-top:1px solid var(--lb)}
+.lab-page-btn{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 8px;border:1.5px solid var(--lb);border-radius:6px;font-size:12px;font-weight:600;color:#475569;background:#fff;cursor:pointer;transition:all .15s;text-decoration:none}
+.lab-page-btn:hover{border-color:#cbd5e1;background:#f8fafc;color:#475569}
+.lab-page-btn.active{background:var(--lab);border-color:var(--lab);color:#fff}
+.lab-page-btn:disabled{opacity:.4;cursor:not-allowed}
 .lab-tabs{display:flex;gap:4px;margin-bottom:0}
 .lab-tab{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:10px 10px 0 0;font-size:13px;font-weight:600;color:#64748b;text-decoration:none!important;background:#f1f5f9;border:1px solid transparent;border-bottom:none;transition:all .15s}
 .lab-tab:hover{color:var(--lab);background:#fff}
@@ -170,7 +175,44 @@
             </tbody>
         </table>
     </div>
-    <div style="padding:16px 20px">{{ $orders->links() }}</div>
+    <div class="lab-pagination">
+        @if($orders->hasPages())
+            {{-- Previous Button --}}
+            @if($orders->onFirstPage())
+                <span class="lab-page-btn" disabled>
+                    <span class="material-symbols-outlined" style="font-size:14px">chevron_left</span>
+                </span>
+            @else
+                <a href="{{ $orders->previousPageUrl() }}" class="lab-page-btn">
+                    <span class="material-symbols-outlined" style="font-size:14px">chevron_left</span>
+                </a>
+            @endif
+
+            {{-- Page Numbers --}}
+            @foreach($elements = $orders->links()->elements as $element)
+                @if(is_string($element))
+                    <span class="lab-page-btn disabled">{{ $element }}</span>
+                @elseif(isset($element['url']))
+                    <a href="{{ $element['url'] }}" class="lab-page-btn {{ $element['active'] ? 'active' : '' }}">
+                        {{ $element['page'] }}
+                    </a>
+                @else
+                    <span class="lab-page-btn disabled">...</span>
+                @endif
+            @endforeach
+
+            {{-- Next Button --}}
+            @if($orders->hasMorePages())
+                <a href="{{ $orders->nextPageUrl() }}" class="lab-page-btn">
+                    <span class="material-symbols-outlined" style="font-size:14px">chevron_right</span>
+                </a>
+            @else
+                <span class="lab-page-btn" disabled>
+                    <span class="material-symbols-outlined" style="font-size:14px">chevron_right</span>
+                </span>
+            @endif
+        @endif
+    </div>
     @endif
 </div>
 
