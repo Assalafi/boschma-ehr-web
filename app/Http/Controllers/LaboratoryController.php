@@ -100,9 +100,7 @@ class LaboratoryController extends Controller
         ];
 
         // Get programs for filter dropdown
-        $programs = \App\Models\Program::where('facility_id', $facilityId)
-            ->orderBy('name')
-            ->pluck('name', 'id');
+        $programs = \App\Models\Program::orderBy('name')->pluck('name', 'id');
 
         return view('laboratory.queue', compact('orders', 'tab', 'counts', 'programs'));
     }
@@ -230,9 +228,7 @@ class LaboratoryController extends Controller
         $orders = $query->latest()->paginate(20)->appends($request->query());
 
         // Get programs for filter dropdown
-        $programs = \App\Models\Program::where('facility_id', $facilityId)
-            ->orderBy('name')
-            ->pluck('name', 'id');
+        $programs = \App\Models\Program::orderBy('name')->pluck('name', 'id');
 
         return view('laboratory.history', compact('orders', 'programs'));
     }
