@@ -217,7 +217,7 @@ class DoctorController extends Controller
                 $partial = 'doctor.queue._lab_table'; break;
             case 'awaitingPharmacy':
                 $query->where('status', '!=', Encounter::STATUS_COMPLETED)
-                    ->whereHas('consultations.prescriptions', fn($q) => $q->whereIn('status', [Prescription::STATUS_PENDING, Prescription::STATUS_PARTIAL]));
+                    ->whereHas('consultations.prescriptions');
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._pharmacy_table'; break;
