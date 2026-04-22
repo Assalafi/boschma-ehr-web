@@ -2042,11 +2042,10 @@ class DoctorController extends Controller
             return response()->json(['error' => 'Service not found.'], 404);
         }
 
-        // Find the pending order for this encounter that contains this item
+        // Find the order for this encounter that contains this item (regardless of status)
         $orderItem = DB::table('service_order_items')
             ->join('service_orders', 'service_order_items.service_order_id', '=', 'service_orders.id')
             ->where('service_orders.encounter_id', $encounter->id)
-            ->where('service_orders.status', 'pending')
             ->where('service_order_items.service_item_id', $serviceItem->id)
             ->select('service_order_items.id as item_id', 'service_orders.id as order_id')
             ->first();
