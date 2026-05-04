@@ -807,23 +807,25 @@ class DoctorController extends Controller
                 ['doctor_id' => Auth::id(), 'status' => ClinicalConsultation::STATUS_IN_PROGRESS]
             );
 
-            // Only complete consultation for Treated and Follow-up outcomes
-            // For Admit, keep consultation active as patient is still in care
-            if ($outcome !== 'Admit') {
+            // Only complete consultation for Treated outcome
+            // For Admit and Follow-up, keep consultation active as patient is still in care
+            if ($outcome === 'Admit' || $outcome === 'Follow-up') {
+                // For admission and follow-up, just add note without completing consultation
+                if ($request->clinical_note) {
+                    $existingNote = $consultation->clinical_note ?? '';
+                    $notePrefix = $outcome === 'Admit' ? 'Admission Note: ' : 'Follow-up Note: ';
+                    $consultation->update([
+                        'clinical_note' => trim($existingNote . "\n\n" . $notePrefix . $request->clinical_note)
+                    ]);
+                }
+            } else {
+                // For Treated, complete consultation
                 $updateData = ['status' => ClinicalConsultation::STATUS_COMPLETED];
                 if ($request->clinical_note) {
                     $existingNote = $consultation->clinical_note ?? '';
                     $updateData['clinical_note'] = trim($existingNote . "\n\nDischarge Note: " . $request->clinical_note);
                 }
                 $consultation->update($updateData);
-            } else {
-                // For admission, just add note without completing consultation
-                if ($request->clinical_note) {
-                    $existingNote = $consultation->clinical_note ?? '';
-                    $consultation->update([
-                        'clinical_note' => trim($existingNote . "\n\nAdmission Note: " . $request->clinical_note)
-                    ]);
-                }
             }
 
             // Update encounter
@@ -1332,9 +1334,13 @@ class DoctorController extends Controller
 
         DB::beginTransaction();
         try {
-            // Update consultation status
+            // Update consultation status - keep in-progress if follow-up, otherwise complete
+            $consultationStatus = $request->outcome === 'Follow-up' 
+                ? ClinicalConsultation::STATUS_IN_PROGRESS 
+                : ClinicalConsultation::STATUS_COMPLETED;
+            
             $consultation->update([
-                'status' => ClinicalConsultation::STATUS_COMPLETED,
+                'status' => $consultationStatus,
                 'clinical_note' => $consultation->clinical_note . "\n\n--- Final Notes ---\n" . $request->final_notes,
             ]);
 
@@ -1385,10 +1391,8 @@ class DoctorController extends Controller
                 'status' => ClinicalConsultation::STATUS_IN_PROGRESS,
             ]);
 
-            // Update encounter status from follow-up to triaged
-            $consultation->encounter->update([
-                'status' => 'triaged',
-            ]);
+            // Keep encounter status as follow_up - don't change it
+            // This ensures the patient remains in the follow-up section
 
             // Log action
             EncounterAction::create([
