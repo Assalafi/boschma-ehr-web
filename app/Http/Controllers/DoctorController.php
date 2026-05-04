@@ -1405,7 +1405,7 @@ class DoctorController extends Controller
 
             DB::commit();
 
-            return redirect()->route('doctor.consultation.show', $consultation)
+            return redirect()->route('doctor.consultation.start', $consultation->encounter)
                 ->with('success', 'Consultation resumed successfully.');
 
         } catch (\Exception $e) {
