@@ -1374,6 +1374,43 @@ class DoctorController extends Controller
     }
 
     /**
+     * Resume a completed consultation (for follow-up patients)
+     */
+    public function resumeConsultation(Request $request, ClinicalConsultation $consultation)
+    {
+        DB::beginTransaction();
+        try {
+            // Update consultation status from completed to in-progress
+            $consultation->update([
+                'status' => ClinicalConsultation::STATUS_IN_PROGRESS,
+            ]);
+
+            // Update encounter status from follow-up to triaged
+            $consultation->encounter->update([
+                'status' => 'triaged',
+            ]);
+
+            // Log action
+            EncounterAction::create([
+                'encounter_id' => $consultation->encounter_id,
+                'user_id' => Auth::id(),
+                'action_type' => ActionType::CONSULTATION,
+                'description' => 'Consultation resumed from follow-up.',
+                'action_time' => now(),
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('doctor.consultation.show', $consultation)
+                ->with('success', 'Consultation resumed successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to resume consultation: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Consultation History
      */
     public function consultationHistory(Request $request)

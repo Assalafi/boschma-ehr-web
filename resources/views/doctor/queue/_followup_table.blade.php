@@ -75,9 +75,17 @@
         </td>
         <td style="padding:12px 14px;vertical-align:middle;text-align:center">
           @if($consultation)
-          <a href="{{ route('doctor.consultation.show', $consultation) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#d97706;color:#fff;text-decoration:none">
-            <span class="material-symbols-outlined" style="font-size:14px">visibility</span> View
-          </a>
+          <div style="display:flex;gap:4px;justify-content:center">
+            <a href="{{ route('doctor.consultation.show', $consultation) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#d97706;color:#fff;text-decoration:none">
+              <span class="material-symbols-outlined" style="font-size:14px">visibility</span> View
+            </a>
+            <form method="POST" action="{{ route('doctor.consultation.resume', $consultation) }}" style="display:inline">
+              @csrf
+              <button type="submit" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#016634;color:#fff;border:none;cursor:pointer;transition:all .15s" onmouseover="this.style.background='#01552b'" onmouseout="this.style.background='#016634'" onclick="return confirm('Resume this consultation? This will change the status from completed to in-progress.')">
+                <span class="material-symbols-outlined" style="font-size:14px">play_arrow</span> Continue
+              </button>
+            </form>
+          </div>
           @else <span style="color:#94a3b8;font-size:12px">N/A</span> @endif
         </td>
       </tr>
