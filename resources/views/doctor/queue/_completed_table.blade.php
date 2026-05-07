@@ -61,9 +61,19 @@
         </td>
         <td style="padding:12px 14px;vertical-align:middle;text-align:center">
           @if($consultation)
-          <a href="{{ route('doctor.consultation.show', $consultation) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#059669;color:#fff;text-decoration:none">
-            <span class="material-symbols-outlined" style="font-size:14px">visibility</span> View
-          </a>
+          <div style="display:flex;align-items:center;gap:6px;justify-content:center">
+            <a href="{{ route('doctor.consultation.show', $consultation) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#059669;color:#fff;text-decoration:none">
+              <span class="material-symbols-outlined" style="font-size:14px">visibility</span> View
+            </a>
+            @if(!$encounter->facilityClaim)
+            <form method="POST" action="{{ route('doctor.queue.restore', $encounter) }}" style="display:inline" onsubmit="return confirm('Restore this encounter to continue consultation?')">
+              @csrf
+              <button type="submit" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#f59e0b;color:#fff;border:none;cursor:pointer">
+                <span class="material-symbols-outlined" style="font-size:14px">restore</span> Restore
+              </button>
+            </form>
+            @endif
+          </div>
           @else <span style="color:#94a3b8;font-size:12px">N/A</span> @endif
         </td>
       </tr>

@@ -1418,6 +1418,52 @@ class DoctorController extends Controller
     }
 
     /**
+     * Restore a completed encounter to in-progress status
+     * Only allowed if no claim has been raised on the encounter
+     */
+    public function restoreEncounter(Request $request, Encounter $encounter)
+    {
+        // Check if a claim has been raised for this encounter
+        if ($encounter->facilityClaim) {
+            return back()->with('error', 'Cannot restore: A claim has already been raised for this encounter.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update encounter status to in-progress
+            $encounter->update([
+                'status' => Encounter::STATUS_IN_PROGRESS,
+            ]);
+
+            // Also update consultation status to in-progress if it exists
+            $consultation = $encounter->consultations->first();
+            if ($consultation) {
+                $consultation->update([
+                    'status' => ClinicalConsultation::STATUS_IN_PROGRESS,
+                ]);
+            }
+
+            // Log action
+            EncounterAction::create([
+                'encounter_id' => $encounter->id,
+                'user_id' => Auth::id(),
+                'action_type' => ActionType::CONSULTATION,
+                'description' => 'Encounter restored to in-progress status for continued consultation.',
+                'action_time' => now(),
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('doctor.consultation.start', $encounter)
+                ->with('success', 'Encounter restored successfully. You can now continue the consultation.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to restore encounter: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Consultation History
      */
     public function consultationHistory(Request $request)
