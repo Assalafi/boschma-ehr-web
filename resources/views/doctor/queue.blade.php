@@ -181,7 +181,7 @@
       <span class="material-symbols-outlined">search</span>
       <input type="text" class="tab-search-input" data-filter="search" placeholder="Search patient, ID, or outcome...">
     </div>
-    <label style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:4px">From <input type="date" class="tab-filter" data-filter="date_from" value="{{ date('Y-m-d') }}"></label>
+    <label style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:4px">From <input type="date" class="tab-filter" data-filter="date_from" value="{{ date('Y-m-d', strtotime('-1 year')) }}"></label>
     <label style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:4px">To <input type="date" class="tab-filter" data-filter="date_to" value="{{ date('Y-m-d') }}"></label>
     <select class="tab-filter" data-filter="doctor"><option value="">All Doctors</option>@foreach($doctors as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
     <select class="tab-filter" data-filter="program"><option value="">All Programs</option>@foreach($programs as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
