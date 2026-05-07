@@ -29,6 +29,12 @@
 
             <!-- ── TREATED: Discharge Note ── -->
             <div id="dischargeNoteFields" style="display:none" class="mb-3">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-medium text-muted">Discharge Date <span class="text-danger">*</span></label>
+                        <input type="datetime-local" id="dischargeDate" class="form-select border-0 bg-light rounded-3" value="{{ now()->format('Y-m-d\TH:i') }}">
+                    </div>
+                </div>
                 <label class="form-label small fw-medium text-muted">Discharge Note</label>
                 <textarea id="dischargeNote" class="form-control border-0 bg-light rounded-3" rows="2" placeholder="Final clinical notes, instructions to patient..."></textarea>
             </div>
@@ -267,6 +273,7 @@ async function _submitDischarge() {
                 outcome: outcome,
                 clinical_note:  document.getElementById('dischargeNote')?.value?.trim() || null,
                 follow_up_date: document.getElementById('followUpDate')?.value || null,
+                discharge_date: document.getElementById('dischargeDate')?.value || null,
             };
             // Add admission fields
             if (outcome === 'Admit') {

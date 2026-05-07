@@ -872,12 +872,15 @@ class DoctorController extends Controller
                 $activeAdmission = Admission::where('encounter_id', $encounter->id)
                     ->where('is_active', true)
                     ->first();
-                
+
                 if ($activeAdmission) {
+                    // Use provided discharge date, or default to now
+                    $dischargeDate = $request->discharge_date ? \Carbon\Carbon::parse($request->discharge_date) : now();
+
                     // Discharge the patient from admission
                     $activeAdmission->update([
                         'is_active' => false,
-                        'discharge_date' => now(),
+                        'discharge_date' => $dischargeDate,
                     ]);
                     
                     // Free up the bed if one was assigned
