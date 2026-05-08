@@ -147,13 +147,14 @@ class NurseController extends Controller
         ]);
 
         // Update encounter status to Triaged only if no active consultation exists
-        // and skip for Admitted patients to preserve their status
+        // and not already in consultation status, and skip for Admitted patients
         if ($encounter->status !== Encounter::STATUS_ADMITTED) {
             $hasActiveConsultation = $encounter->consultations()
                 ->whereNotIn('status', [\App\Models\ClinicalConsultation::STATUS_COMPLETED])
                 ->exists();
             
-            if (!$hasActiveConsultation) {
+            // Don't change status if: has active consultation OR already in consultation
+            if (!$hasActiveConsultation && $encounter->status !== Encounter::STATUS_IN_CONSULTATION) {
                 $encounter->update([
                     'status' => Encounter::STATUS_TRIAGED,
                 ]);
