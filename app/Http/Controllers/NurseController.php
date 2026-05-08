@@ -146,11 +146,18 @@ class NurseController extends Controller
             'overall_priority' => $request->overall_priority,
         ]);
 
-        // Update encounter status to Triaged (skip for Admitted patients to preserve their status)
+        // Update encounter status to Triaged only if no active consultation exists
+        // and skip for Admitted patients to preserve their status
         if ($encounter->status !== Encounter::STATUS_ADMITTED) {
-            $encounter->update([
-                'status' => Encounter::STATUS_TRIAGED,
-            ]);
+            $hasActiveConsultation = $encounter->consultations()
+                ->whereNotIn('status', [\App\Models\ClinicalConsultation::STATUS_COMPLETED])
+                ->exists();
+            
+            if (!$hasActiveConsultation) {
+                $encounter->update([
+                    'status' => Encounter::STATUS_TRIAGED,
+                ]);
+            }
         }
 
         // Log the triage action
