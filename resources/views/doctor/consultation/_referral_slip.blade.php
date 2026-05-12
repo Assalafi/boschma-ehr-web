@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Patient Referral Slip</title>
     <style>
-        @media print {
-            body { -webkit-print-color-adjust: exact; }
-            .no-print { display: none !important; }
-        }
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
@@ -119,8 +115,7 @@
     </style>
 </head>
 <body>
-    <button class="print-btn no-print" onclick="window.print()">Download/Print PDF</button>
-    
+        
     <div class="header">
         <div class="watermark"></div>
         <h1>BOSCHMA</h1>
@@ -200,14 +195,5 @@
     <div class="footer">
         This is an official BOSCHMA referral document. Valid authorization code required.
     </div>
-
-    <script>
-        // Auto-print when page loads
-        window.onload = function() {
-            setTimeout(function() {
-                window.print();
-            }, 500);
-        };
-    </script>
 </body>
 </html>

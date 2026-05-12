@@ -781,7 +781,7 @@ class DoctorController extends Controller
             $presentation = implode(' * ', $symptoms);
         }
 
-        return view('doctor.consultation._referral_slip', [
+        $data = [
             'authorization_code' => $authCode,
             'boschma_number' => $encounter->patient->enrollee_number ?? 'N/A',
             'beneficiary_name' => $encounter->patient->name ?? 'N/A',
@@ -795,7 +795,10 @@ class DoctorController extends Controller
             'reason_for_referral' => $referral->reason ?? '',
             'treatment_before_referral' => 'NONE',
             'date' => $referral->created_at ? \Carbon\Carbon::parse($referral->created_at) : now(),
-        ]);
+        ];
+
+        $pdf = \PDF::loadView('doctor.consultation._referral_slip', $data);
+        return $pdf->download('referral_slip_' . $referralId . '.pdf');
     }
 
     /**
