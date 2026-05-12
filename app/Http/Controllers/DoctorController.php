@@ -787,6 +787,25 @@ class DoctorController extends Controller
             $clinicalFindings = $consultation->clinical_notes ?? '';
         }
 
+        // Parse referral reason to extract clinical findings and separate reason
+        $referralReason = $referral->reason ?? '';
+        $parsedClinicalFindings = '';
+        $actualReason = '';
+
+        // Check if referral reason contains "Clinical Findings:" and extract it
+        if (stripos($referralReason, 'Clinical Findings:') !== false) {
+            $parts = explode('Clinical Findings:', $referralReason, 2);
+            $actualReason = trim($parts[0]);
+            $parsedClinicalFindings = trim($parts[1]);
+        } else {
+            $actualReason = $referralReason;
+        }
+
+        // Use parsed clinical findings if available, otherwise use consultation notes
+        if ($parsedClinicalFindings && !$clinicalFindings) {
+            $clinicalFindings = $parsedClinicalFindings;
+        }
+
         // Convert logo to base64 for domPDF
         $logoPath = public_path('assets/images/logo.png');
         $logoBase64 = '';
@@ -834,7 +853,7 @@ class DoctorController extends Controller
             'clinical_findings' => $clinicalFindings,
             'investigation' => $investigation,
             'diagnosis' => $diagnosis,
-            'reason_for_referral' => $referral->reason ?? '',
+            'reason_for_referral' => $actualReason,
             'treatment_before_referral' => 'NONE',
             'date' => $referral->created_at ? \Carbon\Carbon::parse($referral->created_at) : now(),
             'encounter' => $encounter,
