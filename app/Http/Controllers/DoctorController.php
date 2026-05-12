@@ -795,6 +795,7 @@ class DoctorController extends Controller
             'reason_for_referral' => $referral->reason ?? '',
             'treatment_before_referral' => 'NONE',
             'date' => $referral->created_at ? \Carbon\Carbon::parse($referral->created_at) : now(),
+            'encounter' => $encounter,
         ];
 
         $pdf = \PDF::loadView('doctor.consultation._referral_slip', $data);

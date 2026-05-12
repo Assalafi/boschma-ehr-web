@@ -129,10 +129,22 @@
 
     <div class="referral-grid">
         <div class="field-group">
+            <label>Patient Photo</label>
+            <div class="value" style="text-align: center; padding: 10px;">
+                @if($encounter->patient && $encounter->patient->photo)
+                    <img src="{{ asset('storage/' . $encounter->patient->photo) }}" alt="Patient Photo" style="max-width: 120px; max-height: 120px; border-radius: 8px;">
+                @else
+                    <div style="width: 120px; height: 120px; background: #e8f0ee; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto; color: #016634;">
+                        <span class="material-symbols-outlined" style="font-size: 48px">person</span>
+                    </div>
+                @endif
+            </div>
+        </div>
+        <div class="field-group">
             <label>BOSCHMA Number</label>
             <div class="value">{{ $boschma_number }}</div>
         </div>
-        <div class="field-group">
+        <div class="field-group full-width">
             <label>Beneficiary Name</label>
             <div class="value">{{ $beneficiary_name }}</div>
         </div>
