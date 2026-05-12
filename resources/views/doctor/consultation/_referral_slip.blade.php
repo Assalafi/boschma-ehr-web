@@ -158,10 +158,6 @@
 
         <table style="margin-top: 6px;">
             <tr>
-                <td class="label-col">Clinical Findings:</td>
-                <td class="value-col">{{ $clinical_findings ?: 'N/A' }}</td>
-            </tr>
-            <tr>
                 <td class="label-col">Investigation:</td>
                 <td class="value-col">{{ $investigation ?: 'N/A' }}</td>
             </tr>
