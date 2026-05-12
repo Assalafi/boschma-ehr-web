@@ -15,12 +15,28 @@
             margin: 0;
             padding: 0;
             line-height: 1.4;
+            position: relative;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.1;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .watermark img {
+            width: 150px;
+            height: 150px;
         }
         .referral-box {
             width: 100%;
             border: 2px solid #000;
             padding: 10px;
             box-sizing: border-box;
+            position: relative;
+            z-index: 1;
         }
         .header {
             text-align: center;
@@ -29,15 +45,13 @@
             margin-bottom: 10px;
             text-transform: uppercase;
         }
-        .logo-placeholder {
+        .logo-container {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .logo-container img {
             width: 80px;
             height: 80px;
-            border: 1px dashed #888;
-            margin: 0 auto 5px auto;
-            line-height: 80px;
-            text-align: center;
-            font-size: 10px;
-            color: #888;
         }
         table {
             width: 100%;
@@ -73,15 +87,16 @@
     </style>
 </head>
 <body>
+    <!-- Watermark -->
+    <div class="watermark">
+        <img src="{{ asset('assets/images/logo.png') }}" alt="Watermark">
+    </div>
+
     <div class="referral-box">
-        <!-- Optional Logo / Picture placeholder (you can replace with actual image) -->
-        @if($encounter->patient && $encounter->patient->photo)
-            <div style="text-align: center; margin-bottom: 5px;">
-                <img src="{{ asset('storage/' . $encounter->patient->photo) }}" alt="Patient Photo" style="width: 80px; height: 80px; object-fit: cover;">
-            </div>
-        @else
-            <div class="logo-placeholder">PICTURE</div>
-        @endif
+        <!-- Logo at top -->
+        <div class="logo-container">
+            <img src="{{ asset('assets/images/logo.png') }}" alt="BOSCHMA Logo">
+        </div>
 
         <div class="header">BORNO STATE CONTRIBUTORY HEALTHCARE MANAGEMENT AGENCY</div>
 
