@@ -719,6 +719,19 @@ class DoctorController extends Controller
                 ->where('referral_type', 'patient')
                 ->whereNull('service_item_id')
                 ->first();
+
+            // Generate and save authorization code
+            $authCode = 'AUTH' . date('Ymd') . str_pad($referral->id % 10000, 4, '0', STR_PAD_LEFT);
+            DB::table('authorizations')->insert([
+                'authorization_code' => $authCode,
+                'patient_id' => $encounter->patient_id,
+                'encounter_id' => $encounter->id,
+                'service_referral_id' => $referral->id,
+                'approved_by' => auth()->user()->id,
+                'expires_at' => now()->addDays(30),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
             
             return response()->json([
                 'success' => true,
@@ -749,8 +762,11 @@ class DoctorController extends Controller
         $fromFacility = Facility::find($referral->from_facility_id);
         $toFacility = Facility::find($referral->to_facility_id);
         
-        // Generate authorization code
-        $authCode = 'AUTH' . date('Ymd') . str_pad($referral->id % 10000, 4, '0', STR_PAD_LEFT);
+        // Get authorization code from authorizations table
+        $authorization = DB::table('authorizations')
+            ->where('service_referral_id', $referral->id)
+            ->first();
+        $authCode = $authorization ? $authorization->authorization_code : 'N/A';
 
         // Get consultation data for diagnosis, investigation, etc.
         $consultation = ClinicalConsultation::where('encounter_id', $encounter->id)->first();
