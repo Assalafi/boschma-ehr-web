@@ -88,15 +88,19 @@
 </head>
 <body>
     <!-- Watermark -->
+    @if($logo_base64)
     <div class="watermark">
-        <img src="{{ asset('assets/images/logo.png') }}" alt="Watermark">
+        <img src="{{ $logo_base64 }}" alt="Watermark">
     </div>
+    @endif
 
     <div class="referral-box">
         <!-- Logo at top -->
+        @if($logo_base64)
         <div class="logo-container">
-            <img src="{{ asset('assets/images/logo.png') }}" alt="BOSCHMA Logo">
+            <img src="{{ $logo_base64 }}" alt="BOSCHMA Logo">
         </div>
+        @endif
 
         <div class="header">BORNO STATE CONTRIBUTORY HEALTHCARE MANAGEMENT AGENCY</div>
 

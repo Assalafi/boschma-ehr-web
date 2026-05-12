@@ -781,11 +781,19 @@ class DoctorController extends Controller
             $presentation = implode(' * ', $symptoms);
         }
 
+        // Convert logo to base64 for domPDF
+        $logoPath = public_path('assets/images/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+        }
+
         $data = [
             'authorization_code' => $authCode,
             'boschma_number' => $encounter->patient->enrollee_number ?? 'N/A',
-            'beneficiary_name' => $encounter->patient->name ?? 'N/A',
-            'phone_number' => $encounter->patient->phone ?? 'N/A',
+            'beneficiary_name' => $encounter->patient->enrollee_name ?? 'N/A',
+            'phone_number' => $encounter->patient->enrollee_phone ?? 'N/A',
             'from_facility' => $fromFacility->name ?? 'N/A',
             'facility_referred_to' => $toFacility->name ?? 'N/A',
             'presentation' => $presentation,
@@ -796,6 +804,7 @@ class DoctorController extends Controller
             'treatment_before_referral' => 'NONE',
             'date' => $referral->created_at ? \Carbon\Carbon::parse($referral->created_at) : now(),
             'encounter' => $encounter,
+            'logo_base64' => $logoBase64,
         ];
 
         $pdf = \PDF::loadView('doctor.consultation._referral_slip', $data);
