@@ -794,7 +794,7 @@ class DoctorController extends Controller
             'diagnosis' => $diagnosis,
             'reason_for_referral' => $referral->reason ?? '',
             'treatment_before_referral' => 'NONE',
-            'date' => $referral->created_at ?? now(),
+            'date' => $referral->created_at ? \Carbon\Carbon::parse($referral->created_at) : now(),
         ]);
     }
 
