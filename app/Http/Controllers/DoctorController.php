@@ -841,6 +841,15 @@ class DoctorController extends Controller
 
             // Handle admission: create record + mark bed occupied
             if ($outcome === 'Admit') {
+                // Check if encounter already has an active admission
+                $existingAdmission = Admission::where('encounter_id', $encounter->id)
+                    ->where('is_active', true)
+                    ->first();
+                
+                if ($existingAdmission) {
+                    return back()->with('error', 'This patient already has an active admission for this encounter. Please discharge the current admission before admitting again.');
+                }
+                
                 $admission = Admission::create([
                     'id'                     => (string) Str::uuid(),
                     'encounter_id'           => $encounter->id,
