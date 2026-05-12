@@ -95,7 +95,14 @@
     @endif
 
     <div class="referral-box">
-        <!-- Logo at top -->
+        <!-- Patient photo at top -->
+        @if($patient_photo_base64)
+        <div class="logo-container">
+            <img src="{{ $patient_photo_base64 }}" alt="Patient Photo" style="border: 1px solid #000; border-radius: 4px;">
+        </div>
+        @endif
+
+        <!-- BOSCHMA Logo -->
         @if($logo_base64)
         <div class="logo-container">
             <img src="{{ $logo_base64 }}" alt="BOSCHMA Logo">

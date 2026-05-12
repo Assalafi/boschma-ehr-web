@@ -789,6 +789,34 @@ class DoctorController extends Controller
             $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
         }
 
+        // Convert patient photo to base64 for domPDF
+        $patientPhotoBase64 = '';
+        $patientPhotoUrl = $encounter->patient->enrollee_photo ?? null;
+        if ($patientPhotoUrl) {
+            // If it's already a base64 data URL
+            if (str_starts_with($patientPhotoUrl, 'data:')) {
+                $patientPhotoBase64 = $patientPhotoUrl;
+            }
+            // If it's an external URL, try to fetch it
+            elseif (str_starts_with($patientPhotoUrl, 'http')) {
+                try {
+                    $photoData = @file_get_contents($patientPhotoUrl);
+                    if ($photoData) {
+                        $extension = pathinfo(parse_url($patientPhotoUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+                        $patientPhotoBase64 = 'data:image/' . $extension . ';base64,' . base64_encode($photoData);
+                    }
+                } catch (\Exception $e) {
+                    // Photo fetch failed, continue without photo
+                }
+            }
+            // If it's a local path
+            elseif (file_exists(public_path($patientPhotoUrl))) {
+                $photoData = file_get_contents(public_path($patientPhotoUrl));
+                $extension = pathinfo($patientPhotoUrl, PATHINFO_EXTENSION) ?: 'jpg';
+                $patientPhotoBase64 = 'data:image/' . $extension . ';base64,' . base64_encode($photoData);
+            }
+        }
+
         $data = [
             'authorization_code' => $authCode,
             'boschma_number' => $encounter->patient->enrollee_number ?? 'N/A',
@@ -805,6 +833,7 @@ class DoctorController extends Controller
             'date' => $referral->created_at ? \Carbon\Carbon::parse($referral->created_at) : now(),
             'encounter' => $encounter,
             'logo_base64' => $logoBase64,
+            'patient_photo_base64' => $patientPhotoBase64,
         ];
 
         $pdf = \PDF::loadView('doctor.consultation._referral_slip', $data);
