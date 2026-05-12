@@ -95,19 +95,21 @@
     @endif
 
     <div class="referral-box">
-        <!-- Patient photo at top -->
-        @if($patient_photo_base64)
-        <div class="logo-container">
-            <img src="{{ $patient_photo_base64 }}" alt="Patient Photo" style="border: 1px solid #000; border-radius: 4px;">
-        </div>
-        @endif
-
-        <!-- BOSCHMA Logo -->
-        @if($logo_base64)
-        <div class="logo-container">
-            <img src="{{ $logo_base64 }}" alt="BOSCHMA Logo">
-        </div>
-        @endif
+        <!-- Logo and Patient Photo in 2-column table -->
+        <table style="margin-bottom: 10px;">
+            <tr>
+                <td style="width: 50%; text-align: center; padding: 10px;">
+                    @if($logo_base64)
+                        <img src="{{ $logo_base64 }}" alt="BOSCHMA Logo" style="width: 80px; height: 80px;">
+                    @endif
+                </td>
+                <td style="width: 50%; text-align: center; padding: 10px;">
+                    @if($patient_photo_base64)
+                        <img src="{{ $patient_photo_base64 }}" alt="Patient Photo" style="width: 80px; height: 80px; object-fit: cover;">
+                    @endif
+                </td>
+            </tr>
+        </table>
 
         <div class="header">BORNO STATE CONTRIBUTORY HEALTHCARE MANAGEMENT AGENCY</div>
 
@@ -151,6 +153,8 @@
         @endif
         @endforeach
         @endif
+
+        <div style="height: 10px;"></div>
 
         <table style="margin-top: 6px;">
             <tr>

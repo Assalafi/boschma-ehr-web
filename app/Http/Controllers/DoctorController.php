@@ -781,6 +781,12 @@ class DoctorController extends Controller
             $presentation = implode(' * ', $symptoms);
         }
 
+        // Get clinical findings from consultation notes
+        $clinicalFindings = '';
+        if ($consultation) {
+            $clinicalFindings = $consultation->clinical_notes ?? '';
+        }
+
         // Convert logo to base64 for domPDF
         $logoPath = public_path('assets/images/logo.png');
         $logoBase64 = '';
@@ -825,7 +831,7 @@ class DoctorController extends Controller
             'from_facility' => $fromFacility->name ?? 'N/A',
             'facility_referred_to' => $toFacility->name ?? 'N/A',
             'presentation' => $presentation,
-            'clinical_findings' => $referral->reason ?? '',
+            'clinical_findings' => $clinicalFindings,
             'investigation' => $investigation,
             'diagnosis' => $diagnosis,
             'reason_for_referral' => $referral->reason ?? '',
