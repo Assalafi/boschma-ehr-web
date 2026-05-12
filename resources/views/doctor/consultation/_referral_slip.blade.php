@@ -32,7 +32,6 @@
         }
         .referral-box {
             width: 100%;
-            border: 2px solid #000;
             padding: 10px;
             box-sizing: border-box;
             position: relative;
