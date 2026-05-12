@@ -294,7 +294,13 @@ async function _submitDischarge() {
         if (data.error) throw new Error(data.error);
         if (data.errors) throw new Error(Object.values(data.errors).flat().join(', '));
         _showToast('success', data.message || 'Done.');
-        setTimeout(() => { window.location.href = data.redirect || '{{ route("doctor.queue") }}'; }, 1200);
+        
+        // Show referral popup if referral was successful
+        if (outcome === 'Refer' && data.referral_id) {
+            _showReferralPopup(data);
+        } else {
+            setTimeout(() => { window.location.href = data.redirect || '{{ route("doctor.queue") }}'; }, 1200);
+        }
     } catch(e) {
         _showToast('danger', e.message || 'Failed.');
         btn.disabled = false;
@@ -356,5 +362,63 @@ function _pickFacility(id, name, type, location) {
 function _clearFacility() {
     document.getElementById('selectedFacilityId').value = '';
     document.getElementById('facilitySelected').style.display = 'none';
+}
+
+function _showReferralPopup(data) {
+    const modalHtml = `
+        <div class="modal fade" id="referralModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0" style="background:#f0f9f6">
+                        <h5 class="modal-title">
+                            <span class="material-symbols-outlined align-middle me-2" style="font-size:20px;color:#016634">arrow_forward</span>
+                            Patient Referral Slip
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-success d-flex align-items-center gap-2" style="background:#dcfce7;border-color:#86efac">
+                            <span class="material-symbols-outlined" style="font-size:20px;color:#059669">check_circle</span>
+                            <span>${data.message || 'Referral created successfully.'}</span>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-success" onclick="_downloadReferralPdf('${data.referral_id}')">
+                                <span class="material-symbols-outlined align-middle me-1">download</span>
+                                Download Referral Slip (PDF)
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" onclick="_closeReferralPopup()">
+                                <span class="material-symbols-outlined align-middle me-1">queue</span>
+                                Go to Patient Queue
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existingModal = document.getElementById('referralModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = new bootstrap.Modal(document.getElementById('referralModal'));
+    modal.show();
+    
+    document.getElementById('referralModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function _downloadReferralPdf(referralId) {
+    window.location.href = '{{ url("doctor/consultation/referral-pdf") }}/' + referralId;
+}
+
+function _closeReferralPopup() {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('referralModal'));
+    modal.hide();
+    window.location.href = '{{ route("doctor.queue") }}';
 }
 </script>

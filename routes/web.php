@@ -136,7 +136,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/consultation/{encounter}/send-to-pharmacy', [DoctorController::class, 'sendToPharmacy'])->name('consultation.send-to-pharmacy');
         Route::post('/consultation/{encounter}/update-procedures', [DoctorController::class, 'updateProcedures'])->name('consultation.update-procedures');
         Route::post('/consultation/{encounter}/refer-patient', [DoctorController::class, 'referPatient'])->name('consultation.refer-patient');
-        Route::post('/consultation/{encounter}/discharge', [DoctorController::class, 'dischargePatient'])->name('consultation.discharge');
+Route::get('/consultation/referral-pdf/{referral}', [DoctorController::class, 'generateReferralPdf'])->name('consultation.referral-pdf');
+Route::post('/consultation/{encounter}/discharge', [DoctorController::class, 'dischargePatient'])->name('consultation.discharge');
         Route::get('/consultation/ward/{ward}/rooms', [DoctorController::class, 'getRoomsByWard'])->name('consultation.ward-rooms');
         Route::get('/consultation/room/{room}/beds', [DoctorController::class, 'getBedsByRoom'])->name('consultation.room-beds');
         Route::post('/consultation/item/{item}/recall', [DoctorController::class, 'recallPrescriptionItem'])->name('consultation.recall-item');

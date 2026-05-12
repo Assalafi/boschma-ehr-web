@@ -712,14 +712,90 @@ class DoctorController extends Controller
             ]);
 
             DB::commit();
+            
+            // Get the referral ID
+            $referral = DB::table('service_referrals')
+                ->where('encounter_id', $encounter->id)
+                ->where('referral_type', 'patient')
+                ->whereNull('service_item_id')
+                ->first();
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Patient referred to ' . ($toFacility->name ?? 'facility') . ' successfully.',
+                'referral_id' => $referral ? $referral->id : null,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Failed to refer patient: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Generate Referral Slip PDF
+     */
+    public function generateReferralPdf($referralId)
+    {
+        $referral = DB::table('service_referrals')->where('id', $referralId)->first();
+        if (!$referral) {
+            abort(404, 'Referral not found');
+        }
+
+        $encounter = Encounter::with('patient')->find($referral->encounter_id);
+        if (!$encounter) {
+            abort(404, 'Encounter not found');
+        }
+
+        $fromFacility = Facility::find($referral->from_facility_id);
+        $toFacility = Facility::find($referral->to_facility_id);
+        
+        // Generate authorization code
+        $authCode = 'AUTH' . date('Ymd') . str_pad($referral->id % 10000, 4, '0', STR_PAD_LEFT);
+
+        // Get consultation data for diagnosis, investigation, etc.
+        $consultation = ClinicalConsultation::where('encounter_id', $encounter->id)->first();
+        $diagnosis = '';
+        $investigation = '';
+        $presentation = '';
+        
+        if ($consultation) {
+            $diagnosis = $consultation->diagnoses->pluck('icdCode.name')->join(', ');
+            $serviceOrders = ServiceOrder::where('encounter_id', $encounter->id)->with('serviceOrderItems.serviceItem')->get();
+            $investigations = [];
+            foreach ($serviceOrders as $order) {
+                foreach ($order->serviceOrderItems as $item) {
+                    if ($item->serviceItem) {
+                        $investigations[] = $item->serviceItem->name;
+                    }
+                }
+            }
+            $investigation = implode(', ', $investigations);
+        }
+
+        // Get vital signs for presentation
+        $vitalSigns = $encounter->vitalSigns->first();
+        if ($vitalSigns) {
+            $symptoms = [];
+            if ($vitalSigns->complaint) $symptoms[] = strtoupper($vitalSigns->complaint);
+            if ($vitalSigns->symptoms) $symptoms[] = strtoupper($vitalSigns->symptoms);
+            $presentation = implode(' * ', $symptoms);
+        }
+
+        return view('doctor.consultation._referral_slip', [
+            'authorization_code' => $authCode,
+            'boschma_number' => $encounter->patient->enrollee_number ?? 'N/A',
+            'beneficiary_name' => $encounter->patient->name ?? 'N/A',
+            'phone_number' => $encounter->patient->phone ?? 'N/A',
+            'from_facility' => $fromFacility->name ?? 'N/A',
+            'facility_referred_to' => $toFacility->name ?? 'N/A',
+            'presentation' => $presentation,
+            'clinical_findings' => $referral->reason ?? '',
+            'investigation' => $investigation,
+            'diagnosis' => $diagnosis,
+            'reason_for_referral' => $referral->reason ?? '',
+            'treatment_before_referral' => 'NONE',
+            'date' => $referral->created_at ?? now(),
+        ]);
     }
 
     /**
