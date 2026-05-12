@@ -14,31 +14,19 @@
         }
         .header {
             text-align: center;
-            border-bottom: 2px solid #016634;
+            border-bottom: 2px solid #000;
             padding-bottom: 15px;
             margin-bottom: 20px;
-            position: relative;
         }
         .header h1 {
-            color: #016634;
+            color: #000;
             margin: 0;
             font-size: 24px;
         }
         .header .subtitle {
-            color: #666;
+            color: #000;
             font-size: 14px;
             margin-top: 5px;
-        }
-        .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0.05;
-            width: 200px;
-            height: 200px;
-            border: 3px solid #016634;
-            border-radius: 50%;
         }
         .referral-grid {
             display: grid;
@@ -52,14 +40,14 @@
         .field-group label {
             display: block;
             font-weight: bold;
-            color: #016634;
+            color: #000;
             font-size: 12px;
             margin-bottom: 5px;
         }
         .field-group .value {
-            background: #f8f9fa;
+            background: #fff;
             padding: 8px 12px;
-            border: 1px solid #dee2e6;
+            border: 1px solid #000;
             border-radius: 4px;
             font-size: 14px;
         }
@@ -67,57 +55,42 @@
             grid-column: 1 / -1;
         }
         .section {
-            background: #f0f9f6;
+            background: #fff;
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 15px;
-            border-left: 4px solid #016634;
+            border: 1px solid #000;
         }
         .section h3 {
             margin: 0 0 10px 0;
-            color: #016634;
+            color: #000;
             font-size: 16px;
         }
         .auth-code {
-            background: #e8f0ee;
+            background: #fff;
+            border: 1px solid #000;
             padding: 10px 15px;
             border-radius: 6px;
             text-align: center;
             font-family: monospace;
             font-size: 16px;
             font-weight: bold;
-            color: #016634;
+            color: #000;
             margin-bottom: 20px;
-        }
-        .print-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 20px;
-            background: #016634;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .print-btn:hover {
-            background: #015228;
         }
         .footer {
             text-align: center;
             margin-top: 30px;
             padding-top: 15px;
-            border-top: 1px solid #dee2e6;
+            border-top: 1px solid #000;
             font-size: 12px;
-            color: #666;
+            color: #000;
         }
     </style>
 </head>
 <body>
         
     <div class="header">
-        <div class="watermark"></div>
         <h1>BOSCHMA</h1>
         <div class="subtitle">Borno State Contributory Healthcare Management Agency</div>
         <div class="subtitle">Patient Referral Slip</div>
@@ -134,8 +107,8 @@
                 @if($encounter->patient && $encounter->patient->photo)
                     <img src="{{ asset('storage/' . $encounter->patient->photo) }}" alt="Patient Photo" style="max-width: 120px; max-height: 120px; border-radius: 8px;">
                 @else
-                    <div style="width: 120px; height: 120px; background: #e8f0ee; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto; color: #016634;">
-                        <span class="material-symbols-outlined" style="font-size: 48px">person</span>
+                    <div style="width: 120px; height: 120px; background: #fff; border: 1px solid #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto; color: #000;">
+                        <span style="font-size: 48px;">[Photo]</span>
                     </div>
                 @endif
             </div>
