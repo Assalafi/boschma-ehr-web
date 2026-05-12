@@ -2,183 +2,156 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patient Referral Slip</title>
+    <title>Referral Slip</title>
     <style>
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            background: #fff;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            color: #000;
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+        }
+        .referral-box {
+            width: 100%;
+            border: 2px solid #000;
+            padding: 10px;
+            box-sizing: border-box;
         }
         .header {
             text-align: center;
-            border-bottom: 2px solid #000;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-        .header h1 {
-            color: #000;
-            margin: 0;
-            font-size: 24px;
-        }
-        .header .subtitle {
-            color: #000;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        .referral-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .field-group {
-            margin-bottom: 15px;
-        }
-        .field-group label {
-            display: block;
             font-weight: bold;
-            color: #000;
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-        .field-group .value {
-            background: #fff;
-            padding: 8px 12px;
-            border: 1px solid #000;
-            border-radius: 4px;
             font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
         }
-        .full-width {
-            grid-column: 1 / -1;
-        }
-        .section {
-            background: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border: 1px solid #000;
-        }
-        .section h3 {
-            margin: 0 0 10px 0;
-            color: #000;
-            font-size: 16px;
-        }
-        .auth-code {
-            background: #fff;
-            border: 1px solid #000;
-            padding: 10px 15px;
-            border-radius: 6px;
+        .logo-placeholder {
+            width: 80px;
+            height: 80px;
+            border: 1px dashed #888;
+            margin: 0 auto 5px auto;
+            line-height: 80px;
             text-align: center;
-            font-family: monospace;
-            font-size: 16px;
+            font-size: 10px;
+            color: #888;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 4px 2px;
+            vertical-align: top;
+        }
+        .label-col {
+            width: 35%;
             font-weight: bold;
-            color: #000;
-            margin-bottom: 20px;
+            padding-right: 8px;
+            white-space: nowrap;
+        }
+        .value-col {
+            width: 65%;
+        }
+        .section-title {
+            font-weight: bold;
+            text-decoration: underline;
+            margin-top: 10px;
+            margin-bottom: 2px;
+        }
+        .list-item {
+            padding-left: 15px;
         }
         .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 1px solid #000;
-            font-size: 12px;
-            color: #000;
+            margin-top: 15px;
+            text-align: right;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-        
-    <div class="header">
-        <h1>BOSCHMA</h1>
-        <div class="subtitle">Borno State Contributory Healthcare Management Agency</div>
-        <div class="subtitle">Patient Referral Slip</div>
-    </div>
-
-    <div class="auth-code">
-        Authorization Code: {{ $authorization_code }}
-    </div>
-
-    <div class="referral-grid">
-        <div class="field-group">
-            <label>Patient Photo</label>
-            <div class="value" style="text-align: center; padding: 10px;">
-                @if($encounter->patient && $encounter->patient->photo)
-                    <img src="{{ asset('storage/' . $encounter->patient->photo) }}" alt="Patient Photo" style="max-width: 120px; max-height: 120px; border-radius: 8px;">
-                @else
-                    <div style="width: 120px; height: 120px; background: #fff; border: 1px solid #000; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin: 0 auto; color: #000;">
-                        <span style="font-size: 48px;">[Photo]</span>
-                    </div>
-                @endif
+    <div class="referral-box">
+        <!-- Optional Logo / Picture placeholder (you can replace with actual image) -->
+        @if($encounter->patient && $encounter->patient->photo)
+            <div style="text-align: center; margin-bottom: 5px;">
+                <img src="{{ asset('storage/' . $encounter->patient->photo) }}" alt="Patient Photo" style="width: 80px; height: 80px; object-fit: cover;">
             </div>
-        </div>
-        <div class="field-group">
-            <label>BOSCHMA Number</label>
-            <div class="value">{{ $boschma_number }}</div>
-        </div>
-        <div class="field-group full-width">
-            <label>Beneficiary Name</label>
-            <div class="value">{{ $beneficiary_name }}</div>
-        </div>
-        <div class="field-group">
-            <label>Phone Number</label>
-            <div class="value">{{ $phone_number }}</div>
-        </div>
-        <div class="field-group">
-            <label>Date</label>
-            <div class="value">{{ $date ? $date->format('Y-m-d H:i:s') : 'N/A' }}</div>
-        </div>
-    </div>
+        @else
+            <div class="logo-placeholder">PICTURE</div>
+        @endif
 
-    <div class="section">
-        <h3>Facility Information</h3>
-        <div class="referral-grid">
-            <div class="field-group">
-                <label>From Facility</label>
-                <div class="value">{{ $from_facility }}</div>
-            </div>
-            <div class="field-group">
-                <label>Referred To</label>
-                <div class="value">{{ $facility_referred_to }}</div>
-            </div>
-        </div>
-    </div>
+        <div class="header">BORNO STATE CONTRIBUTORY HEALTHCARE MANAGEMENT AGENCY</div>
 
-    <div class="section">
-        <h3>Clinical Information</h3>
-        <div class="field-group">
-            <label>Presentation (Symptoms)</label>
-            <div class="value">{{ $presentation ?: 'N/A' }}</div>
-        </div>
-        <div class="field-group">
-            <label>Clinical Findings</label>
-            <div class="value">{{ $clinical_findings ?: 'N/A' }}</div>
-        </div>
-        <div class="field-group">
-            <label>Investigation</label>
-            <div class="value">{{ $investigation ?: 'N/A' }}</div>
-        </div>
-        <div class="field-group">
-            <label>Diagnosis</label>
-            <div class="value">{{ $diagnosis ?: 'N/A' }}</div>
-        </div>
-    </div>
+        <table>
+            <tr>
+                <td class="label-col">Authorization Code:</td>
+                <td class="value-col">{{ $authorization_code }}</td>
+            </tr>
+            <tr>
+                <td class="label-col">BOSCHMA Number:</td>
+                <td class="value-col">{{ $boschma_number }}</td>
+            </tr>
+            <tr><td colspan="2" style="height: 5px;"></td></tr>
+            <tr>
+                <td class="label-col">Beneficiary Name:</td>
+                <td class="value-col">{{ $beneficiary_name }}</td>
+            </tr>
+            <tr>
+                <td class="label-col">Phone Number:</td>
+                <td class="value-col">{{ $phone_number }}</td>
+            </tr>
+            <tr><td colspan="2" style="height: 5px;"></td></tr>
+            <tr>
+                <td class="label-col">From Facility:</td>
+                <td class="value-col">{{ $from_facility }}</td>
+            </tr>
+            <tr>
+                <td class="label-col">Facility Referred to:</td>
+                <td class="value-col">{{ $facility_referred_to }}</td>
+            </tr>
+        </table>
 
-    <div class="section">
-        <h3>Referral Details</h3>
-        <div class="field-group">
-            <label>Reason for Referral</label>
-            <div class="value">{{ $reason_for_referral }}</div>
-        </div>
-        <div class="field-group">
-            <label>Treatment Before Referral</label>
-            <div class="value">{{ $treatment_before_referral }}</div>
-        </div>
-    </div>
+        @if($presentation)
+        <div class="section-title">Presentation:</div>
+        @php
+            $presentations = explode('*', $presentation);
+        @endphp
+        @foreach($presentations as $p)
+        @if(trim($p))
+        <div class="list-item">* {{ trim($p) }}</div>
+        @endif
+        @endforeach
+        @endif
 
-    <div class="footer">
-        This is an official BOSCHMA referral document. Valid authorization code required.
+        <table style="margin-top: 6px;">
+            <tr>
+                <td class="label-col">Clinical Findings:</td>
+                <td class="value-col">{{ $clinical_findings ?: 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td class="label-col">Investigation:</td>
+                <td class="value-col">{{ $investigation ?: 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td class="label-col">Diagnosis:</td>
+                <td class="value-col">{{ $diagnosis ?: 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td class="label-col">Reason for Referral:</td>
+                <td class="value-col">{{ $reason_for_referral }}</td>
+            </tr>
+            <tr>
+                <td class="label-col">Treatment Before Referral:</td>
+                <td class="value-col">{{ $treatment_before_referral }}</td>
+            </tr>
+        </table>
+
+        <div class="footer">
+            Date: {{ $date ? $date->format('Y-m-d H:i:s') : 'N/A' }}
+        </div>
     </div>
 </body>
 </html>
