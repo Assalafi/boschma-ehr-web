@@ -8,6 +8,7 @@ use App\Http\Controllers\NurseController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\PharmacyController;
 use App\Http\Controllers\LaboratoryController;
+use App\Http\Controllers\RadiologistController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\VitalSignController;
@@ -41,6 +42,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/doctor', [DoctorController::class, 'dashboard'])->name('doctor');
         Route::get('/pharmacy', [PharmacyController::class, 'dashboard'])->name('pharmacy');
         Route::get('/laboratory', [LaboratoryController::class, 'dashboard'])->name('laboratory');
+        Route::get('/radiologist', [RadiologistController::class, 'dashboard'])->name('radiologist');
         Route::get('/admin', [AdminController::class, 'dashboard'])->name('admin');
     });
     
@@ -215,6 +217,16 @@ Route::post('/consultation/{encounter}/discharge', [DoctorController::class, 'di
         Route::post('/{drug}/stock', [PharmacyController::class, 'updateStock'])->name('update-stock');
     });
     
+    // Radiologist Routes
+    Route::prefix('radiologist')->name('radiologist.')->middleware(['auth', 'role:Radiologist|Radiographer|Admin'])->group(function () {
+        Route::get('/dashboard', [RadiologistController::class, 'dashboard'])->name('dashboard');
+        Route::get('/queue', [RadiologistController::class, 'queue'])->name('queue');
+        Route::get('/history', [RadiologistController::class, 'history'])->name('history');
+        Route::get('/order/{item}', [RadiologistController::class, 'orderShow'])->name('order.show');
+        Route::post('/order/{item}/status', [RadiologistController::class, 'updateStatus'])->name('order.status');
+        Route::post('/order/{item}/result', [RadiologistController::class, 'recordResult'])->name('order.result');
+    });
+
     // Laboratory Routes
     Route::prefix('laboratory')->name('laboratory.')->middleware(['auth', 'role:Lab Technician|Admin'])->group(function () {
         Route::get('/dashboard', [LaboratoryController::class, 'dashboard'])->name('dashboard');

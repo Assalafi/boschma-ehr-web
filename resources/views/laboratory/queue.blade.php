@@ -18,6 +18,7 @@
 .lab-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
 .lab-badge-amber{background:#fef3c7;color:#92400e}.lab-badge-blue{background:#dbeafe;color:#1e40af}
 .lab-badge-green{background:#dcfce7;color:#166534}.lab-badge-gray{background:#f1f5f9;color:#475569}
+.lab-badge-red{background:#fee2e2;color:#991b1b}
 .lab-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;border:none;cursor:pointer;transition:all .15s;text-decoration:none}
 .lab-btn-primary{background:var(--lab);color:#fff}.lab-btn-primary:hover{background:var(--lab-dk);color:#fff}
 .lab-btn-outline{background:#fff;color:var(--lab);border:1.5px solid var(--lab)}.lab-btn-outline:hover{background:var(--lab-lt);color:var(--lab)}
@@ -61,7 +62,12 @@
 @endif
 
 <div class="lab-tabs">
-    @php $tabs = [['pending','Pending','#f59e0b','#fef3c7','assignment_late'],['in_progress','In Progress','#3b82f6','#dbeafe','labs'],['completed','Completed','#10b981','#dcfce7','task_alt']]; @endphp
+    @php $tabs = [
+        ['pending',    'Pending',     '#f59e0b','#fef3c7','assignment_late'],
+        ['in_progress','In Progress', '#3b82f6','#dbeafe','labs'],
+        ['completed',  'Completed',   '#10b981','#dcfce7','task_alt'],
+        ['cancelled',  'No Show',     '#ef4444','#fee2e2','person_off'],
+    ]; @endphp
     @foreach($tabs as [$key,$label,$color,$bg,$icon])
     <a class="lab-tab {{ $tab===$key?'active':'' }}" href="{{ route('laboratory.queue', array_merge(request()->query(), ['tab'=>$key])) }}">
         <span class="material-symbols-outlined" style="font-size:16px">{{ $icon }}</span>
@@ -117,7 +123,7 @@
                 $name    = $info?->fullname ?? $info?->name ?? 'Unknown';
                 $file    = $patient?->file_number ?? '—';
                 $enc     = $item->serviceOrder?->encounter;
-                $sc      = ['pending'=>'amber','in_progress'=>'blue','completed'=>'green'];
+                $sc      = ['pending'=>'amber','in_progress'=>'blue','completed'=>'green','cancelled'=>'red'];
                 $badge   = $sc[$item->status] ?? 'gray';
             @endphp
             <tr>
@@ -153,9 +159,17 @@
                             @csrf
                             <input type="hidden" name="status" value="in_progress">
                             <button class="lab-btn" style="background:#dbeafe;color:#1e40af;font-size:11px;padding:5px 10px" title="Mark In Progress">
-                                <span class="material-symbols-outlined" style="font-size:14px">labs</span>
+                                <span class="material-symbols-outlined" style="font-size:14px">labs</span> In Progress
                             </button>
                         </form>
+                        <button type="button"
+                            class="lab-btn"
+                            style="background:#fee2e2;color:#991b1b;font-size:11px;padding:5px 10px"
+                            title="Mark as No Show"
+                            onclick="confirmNoShow('{{ route('laboratory.order.status', $item) }}', '{{ $name }}')"
+                        >
+                            <span class="material-symbols-outlined" style="font-size:14px">person_off</span>
+                        </button>
                         @elseif($item->status === 'in_progress')
                         <form method="POST" action="{{ route('laboratory.order.status', $item) }}">
                             @csrf
@@ -165,9 +179,11 @@
                             </button>
                         </form>
                         @endif
+                        @if($item->status !== 'cancelled')
                         <a href="{{ route('laboratory.order.show', $item) }}" class="lab-btn lab-btn-primary" style="font-size:11px;padding:5px 10px" title="View & Record Result">
                             <span class="material-symbols-outlined" style="font-size:14px">open_in_new</span>
                         </a>
+                        @endif
                     </div>
                 </td>
             </tr>
@@ -237,5 +253,48 @@
     @endif
 </div>
 
+{{-- No Show Confirmation Modal --}}
+<div class="modal fade" id="noShowModal" tabindex="-1" aria-labelledby="noShowModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+            <div class="modal-header border-0 pb-0" style="padding:24px 24px 12px">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:48px;height:48px;border-radius:12px;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <span class="material-symbols-outlined" style="color:#ef4444;font-size:24px">person_off</span>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-700 mb-0" id="noShowModalLabel" style="font-size:16px;color:#1e293b">Mark as No Show?</h5>
+                        <p class="mb-0" style="font-size:12px;color:#64748b">This will cancel the lab investigation</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding:16px 24px 8px">
+                <div style="background:#fff8f8;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;font-size:13px;color:#7f1d1d">
+                    <strong id="noShowPatientName"></strong> did not report to the laboratory.
+                    The investigation will be marked as <strong>cancelled (No Show)</strong> and will no longer appear in the active queue.
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding:16px 24px 24px;gap:8px">
+                <button type="button" class="lab-btn lab-btn-outline" data-bs-dismiss="modal">Cancel</button>
+                <form id="noShowForm" method="POST">
+                    @csrf
+                    <input type="hidden" name="status" value="cancelled">
+                    <button type="submit" class="lab-btn" style="background:#ef4444;color:#fff">
+                        <span class="material-symbols-outlined" style="font-size:16px">person_off</span>
+                        Confirm No Show
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+function confirmNoShow(actionUrl, patientName) {
+    document.getElementById('noShowForm').action = actionUrl;
+    document.getElementById('noShowPatientName').textContent = patientName;
+    new bootstrap.Modal(document.getElementById('noShowModal')).show();
+}
+</script>
 @endsection

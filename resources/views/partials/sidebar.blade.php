@@ -187,7 +187,28 @@
                 @endif
             @endauth
 
+            <!-- Radiologist Module -->
+            @auth
+                @if (auth()->user()->isRadiologist() || auth()->user()->isAdmin())
+                    <li class="menu-item">
+                        <a href="{{ route('radiologist.queue') }}"
+                            class="menu-link {{ Request::is('radiologist/queue*') || Request::is('radiologist/order*') ? 'active' : '' }}">
+                            <span class="material-symbols-outlined menu-icon">radiology</span>
+                            <span class="title">Radiology Queue</span>
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="{{ route('radiologist.history') }}"
+                            class="menu-link {{ Request::is('radiologist/history*') ? 'active' : '' }}">
+                            <span class="material-symbols-outlined menu-icon">history</span>
+                            <span class="title">Reports History</span>
+                        </a>
+                    </li>
+                @endif
+            @endauth
+
             <!-- Admin Module -->
+
             @auth
                 @if (auth()->user()->isAdmin())
                     <li class="menu-title small text-uppercase">

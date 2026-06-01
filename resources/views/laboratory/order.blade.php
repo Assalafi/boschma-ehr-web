@@ -43,7 +43,7 @@ $patient=$item->serviceOrder?->encounter?->patient;
 $info=$patient?->enrollee;
 $name=$info?->fullname??$info?->name??'Unknown';
 $enc=$item->serviceOrder?->encounter;
-$sc=['pending'=>'amber','in_progress'=>'blue','completed'=>'green'];
+$sc=['pending'=>'amber','in_progress'=>'blue','completed'=>'green','cancelled'=>'red'];
 $badge=$sc[$item->status]??'gray';
 @endphp
 <div class="lab-page">
@@ -149,10 +149,19 @@ $badge=$sc[$item->status]??'gray';
                 <form method="POST" action="{{ route('laboratory.order.status',$item) }}">@csrf<input type="hidden" name="status" value="in_progress">
                     <button class="lab-btn lab-btn-blue"><span class="material-symbols-outlined" style="font-size:15px">labs</span> Mark In Progress</button>
                 </form>
+                <button type="button" class="lab-btn" style="background:#fee2e2;color:#991b1b;border:1.5px solid #fca5a5"
+                    onclick="confirmNoShow('{{ route('laboratory.order.status',$item) }}', '{{ addslashes($name) }}')"
+                >
+                    <span class="material-symbols-outlined" style="font-size:15px">person_off</span> No Show
+                </button>
                 @elseif($item->status==='in_progress')
                 <form method="POST" action="{{ route('laboratory.order.status',$item) }}">@csrf<input type="hidden" name="status" value="pending">
                     <button class="lab-btn lab-btn-amber"><span class="material-symbols-outlined" style="font-size:15px">undo</span> Revert Pending</button>
                 </form>
+                @elseif($item->status==='cancelled')
+                <div class="lab-badge lab-badge-red" style="font-size:12px;padding:6px 14px">
+                    <span class="material-symbols-outlined" style="font-size:15px">person_off</span> No Show — Investigation Cancelled
+                </div>
                 @endif
                 <a href="{{ route('laboratory.queue') }}" class="lab-btn lab-btn-outline ms-auto">Back to Queue</a>
             </div>
@@ -271,4 +280,47 @@ function previewFile(i){
 }
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('input[type="file"]').forEach(i=>{if(i.files&&i.files[0])previewFile(i)})});
 </script>
+
+{{-- No Show Confirmation Modal --}}
+<div class="modal fade" id="noShowModal" tabindex="-1" aria-labelledby="noShowModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;border:none;box-shadow:0 20px 60px rgba(0,0,0,.15)">
+            <div class="modal-header border-0 pb-0" style="padding:24px 24px 12px">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:48px;height:48px;border-radius:12px;background:#fee2e2;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <span class="material-symbols-outlined" style="color:#ef4444;font-size:24px">person_off</span>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="noShowModalLabel" style="font-size:16px;color:#1e293b">Mark as No Show?</h5>
+                        <p class="mb-0" style="font-size:12px;color:#64748b">This will cancel the lab investigation</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding:16px 24px 8px">
+                <div style="background:#fff8f8;border:1px solid #fecaca;border-radius:10px;padding:14px 16px;font-size:13px;color:#7f1d1d">
+                    <strong>{{ $name }}</strong> did not report to the laboratory.
+                    The investigation will be marked as <strong>cancelled (No Show)</strong> and will no longer appear in the active queue.
+                </div>
+            </div>
+            <div class="modal-footer border-0" style="padding:16px 24px 24px;gap:8px">
+                <button type="button" class="lab-btn lab-btn-outline" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ route('laboratory.order.status', $item) }}">
+                    @csrf
+                    <input type="hidden" name="status" value="cancelled">
+                    <button type="submit" class="lab-btn" style="background:#ef4444;color:#fff">
+                        <span class="material-symbols-outlined" style="font-size:16px">person_off</span>
+                        Confirm No Show
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function confirmNoShow() {
+    new bootstrap.Modal(document.getElementById('noShowModal')).show();
+}
+</script>
 @endsection
+

@@ -241,6 +241,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is a radiologist.
+     */
+    public function isRadiologist(): bool
+    {
+        return $this->hasSpecificRole('Radiologist') || $this->hasSpecificRole('Radiographer');
+    }
+
+    /**
      * Check if user is admin.
      */
     public function isAdmin(): bool

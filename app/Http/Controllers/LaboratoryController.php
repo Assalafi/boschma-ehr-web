@@ -14,11 +14,21 @@ use Illuminate\Support\Facades\Log;
 
 class LaboratoryController extends Controller
 {
+    /**
+     * Return IDs of laboratory service categories only (excludes radiology).
+     */
     private function labCategoryIds(): array
     {
-        // Include ALL service categories - all services are processed through the lab system
-        // This ensures comprehensive tracking and coordination of all patient services
-        return ServiceCategory::pluck('id')->toArray();
+        return ServiceCategory::where(function ($q) {
+                $q->where('name', 'like', '%laborator%')
+                  ->orWhere('name', 'like', '%haematology%')
+                  ->orWhere('name', 'like', '%haematolog%')
+                  ->orWhere('name', 'like', '%patholog%')
+                  ->orWhere('name', 'like', '%microbiol%');
+            })
+            ->where('name', 'not like', '%radiol%')
+            ->pluck('id')
+            ->toArray();
     }
 
     private function labBaseQuery(array $labCatIds)
@@ -59,6 +69,7 @@ class LaboratoryController extends Controller
         $statuses = match($tab) {
             'in_progress' => ['in_progress'],
             'completed'   => ['completed'],
+            'cancelled'   => ['cancelled'],
             default       => ['pending'],
         };
 
@@ -97,6 +108,7 @@ class LaboratoryController extends Controller
             'pending'     => (clone $base)->where('status', 'pending')->count(),
             'in_progress' => (clone $base)->where('status', 'in_progress')->count(),
             'completed'   => (clone $base)->where('status', 'completed')->count(),
+            'cancelled'   => (clone $base)->where('status', 'cancelled')->count(),
         ];
 
         // Get programs for filter dropdown
@@ -122,7 +134,7 @@ class LaboratoryController extends Controller
 
     public function updateStatus(Request $request, ServiceOrderItem $item): \Illuminate\Http\RedirectResponse
     {
-        $request->validate(['status' => 'required|in:pending,in_progress,completed']);
+        $request->validate(['status' => 'required|in:pending,in_progress,completed,cancelled']);
 
         $item->update(['status' => $request->status]);
 
