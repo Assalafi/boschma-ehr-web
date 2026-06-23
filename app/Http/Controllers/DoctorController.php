@@ -2037,7 +2037,7 @@ class DoctorController extends Controller
                     }
                 }
 
-                // Upsert Investigation record
+                // Create Investigation record — ONE per service so each can be independently deleted
                 // Ensure consultation exists for clinical_consultation_id
                 $consultation = ClinicalConsultation::firstOrCreate(
                     ['encounter_id' => $encounter->id],
@@ -2047,19 +2047,21 @@ class DoctorController extends Controller
                     ]
                 );
                 
-                Investigation::updateOrCreate(
-                    ['encounter_id' => $encounter->id, 'type' => 'Service Order'],
-                    [
+                // Create one investigation per service to allow independent deletion
+                foreach ($localItems as $item) {
+                    Investigation::create([
+                        'encounter_id'             => $encounter->id,
                         'clinical_consultation_id' => $consultation->id,
                         'patient_id'               => $encounter->patient_id,
                         'facility_id'              => $facilityId,
                         'ordered_by'               => Auth::id(),
                         'requested_by'             => Auth::id(),
+                        'type'                     => 'Service Order',
                         'category'                 => 'General',
-                        'tests'                    => json_encode(array_column($localItems, 'name')),
+                        'tests'                    => json_encode([$item->name]),
                         'status'                   => 'Pending',
-                    ]
-                );
+                    ]);
+                }
 
                 if ($newlyAdded > 0) {
                     EncounterAction::create([
@@ -2330,6 +2332,19 @@ class DoctorController extends Controller
                 ->where('service_item_id', $serviceItem->id)
                 ->where('status', 'pending')
                 ->delete();
+
+            // Delete the first pending Investigation for this service on this encounter
+            // Each investigation now stores ONE service per record, so we delete just one
+            $investigation = DB::table('investigations')
+                ->where('encounter_id', $encounter->id)
+                ->where('status', 'Pending')
+                ->whereRaw('JSON_CONTAINS(tests, ?)', [json_encode($request->service_name)])
+                ->orderBy('created_at')
+                ->first();
+            
+            if ($investigation) {
+                DB::table('investigations')->where('id', $investigation->id)->delete();
+            }
 
             DB::commit();
 
