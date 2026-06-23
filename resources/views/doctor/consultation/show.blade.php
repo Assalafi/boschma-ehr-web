@@ -117,11 +117,32 @@
     <div class="doc-card">
       <div class="doc-card-header"><span class="material-symbols-outlined" style="font-size:16px;color:var(--doc-primary)">stethoscope</span> Clinical Assessment</div>
       <div class="section-body">
-        <div class="section-title-inline">Presenting Complaints</div>
-        <p style="color:#334155;line-height:1.6;margin-bottom:16px">{{ $consultation->presenting_complaints ?? 'Not documented' }}</p>
+        <!-- History Taking -->
+        <div style="margin-bottom:20px">
+          <div class="section-title-inline"><span class="material-symbols-outlined align-middle me-1" style="font-size:14px">history_edu</span>History Taking / Presenting Complaints</div>
+          <div style="background:#f8fafc;border-left:4px solid var(--doc-primary);padding:12px 16px;border-radius:6px;margin-top:8px">
+            <p style="color:#334155;line-height:1.6;margin:0;font-size:13px">{{ $consultation->presenting_complaints ?? '<span style="color:#94a3b8;font-style:italic">Not documented</span>' }}</p>
+          </div>
+        </div>
+
+        <!-- History of Present Illness (if available) -->
+        @if($consultation->history_of_present_illness)
+        <div style="margin-bottom:20px">
+          <div class="section-title-inline"><span class="material-symbols-outlined align-middle me-1" style="font-size:14px">timeline</span>History of Present Illness</div>
+          <div style="background:#f8fafc;border-left:4px solid #0284c7;padding:12px 16px;border-radius:6px;margin-top:8px">
+            <p style="color:#334155;line-height:1.6;margin:0;font-size:13px">{{ $consultation->history_of_present_illness }}</p>
+          </div>
+        </div>
+        @endif
+
+        <!-- Physical Examination -->
         @if($consultation->physical_examination)
-        <div class="section-title-inline">Physical Examination</div>
-        <p style="color:#334155;line-height:1.6;margin-bottom:0">{{ $consultation->physical_examination }}</p>
+        <div>
+          <div class="section-title-inline"><span class="material-symbols-outlined align-middle me-1" style="font-size:14px">favorite_doctor</span>Physical Examination</div>
+          <div style="background:#f8fafc;border-left:4px solid #059669;padding:12px 16px;border-radius:6px;margin-top:8px">
+            <p style="color:#334155;line-height:1.6;margin:0;font-size:13px">{{ $consultation->physical_examination }}</p>
+          </div>
+        </div>
         @endif
       </div>
     </div>
@@ -169,6 +190,44 @@
       </div>
       @endif
     </div>
+
+    {{-- Investigations --}}
+    @if($consultation->investigations->isNotEmpty())
+    <div class="doc-card">
+      <div class="doc-card-header"><span class="material-symbols-outlined" style="font-size:16px;color:var(--doc-primary)">science</span> Investigations Ordered</div>
+      <div class="section-body">
+        @foreach($consultation->investigations as $investigation)
+        <div style="border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;margin-bottom:12px;background:#f8fafb">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div style="flex:1">
+              <strong style="color:#1e293b;font-size:13px">{{ $investigation->type ?? 'Investigation' }}</strong>
+              @if($investigation->category)
+              <span class="doc-badge doc-badge-blue" style="margin-left:6px">{{ $investigation->category }}</span>
+              @endif
+              <span class="doc-badge {{ $investigation->status == 'Pending' ? 'doc-badge-amber' : 'doc-badge-green' }}" style="margin-left:4px">{{ $investigation->status }}</span>
+            </div>
+            <small style="color:#94a3b8">{{ $investigation->created_at->format('d M Y, H:i') }}</small>
+          </div>
+          @if($investigation->tests)
+          <div style="font-size:12px;color:#475569;margin:8px 0">
+            <strong>Tests:</strong>
+            @php
+              $tests = is_string($investigation->tests) ? json_decode($investigation->tests, true) : $investigation->tests;
+              $testList = is_array($tests) ? $tests : [$investigation->tests];
+            @endphp
+            {{ implode(', ', array_filter($testList)) }}
+          </div>
+          @endif
+          @if($investigation->notes)
+          <div style="font-size:12px;color:#64748b;margin-top:8px;font-style:italic;padding-top:8px;border-top:1px solid #e2e8f0">
+            {{ $investigation->notes }}
+          </div>
+          @endif
+        </div>
+        @endforeach
+      </div>
+    </div>
+    @endif
 
     <a href="{{ route('doctor.dashboard') }}" class="doc-btn doc-btn-outline"><span class="material-symbols-outlined" style="font-size:14px">arrow_back</span> Back to Dashboard</a>
   </div>
