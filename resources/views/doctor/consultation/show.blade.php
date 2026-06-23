@@ -118,32 +118,53 @@
       <div class="doc-card-header"><span class="material-symbols-outlined" style="font-size:16px;color:var(--doc-primary)">stethoscope</span> Clinical Assessment</div>
       <div class="section-body">
         <!-- History Taking -->
-        <div style="margin-bottom:20px">
-          <div class="section-title-inline"><span class="material-symbols-outlined align-middle me-1" style="font-size:14px">history_edu</span>History Taking / Presenting Complaints</div>
-          <div style="background:#f8fafc;border-left:4px solid var(--doc-primary);padding:12px 16px;border-radius:6px;margin-top:8px">
-            <p style="color:#334155;line-height:1.6;margin:0;font-size:13px">{{ $consultation->presenting_complaints ?? '<span style="color:#94a3b8;font-style:italic">Not documented</span>' }}</p>
+        <div style="margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid #e2e8f0">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px">
+            <span class="material-symbols-outlined" style="font-size:18px; color:var(--doc-primary)">history_edu</span>
+            <div class="section-title-inline" style="margin:0; padding:0">History Taking / Presenting Complaints</div>
+          </div>
+          <div style="background:#f8fafc; border-left:4px solid var(--doc-primary); padding:12px 16px; border-radius:6px; margin-top:8px">
+            <p style="color:#334155; line-height:1.6; margin:0; font-size:13px">
+              @if($consultation->presenting_complaints)
+                {!! nl2br(e($consultation->presenting_complaints)) !!}
+              @else
+                <span style="color:#94a3b8; font-style:italic">Not documented</span>
+              @endif
+            </p>
           </div>
         </div>
 
-        <!-- History of Present Illness (if available) -->
+        <!-- History of Present Illness -->
         @if($consultation->history_of_present_illness)
-        <div style="margin-bottom:20px">
-          <div class="section-title-inline"><span class="material-symbols-outlined align-middle me-1" style="font-size:14px">timeline</span>History of Present Illness</div>
-          <div style="background:#f8fafc;border-left:4px solid #0284c7;padding:12px 16px;border-radius:6px;margin-top:8px">
-            <p style="color:#334155;line-height:1.6;margin:0;font-size:13px">{{ $consultation->history_of_present_illness }}</p>
+        <div style="margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid #e2e8f0">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px">
+            <span class="material-symbols-outlined" style="font-size:18px; color:#0284c7">timeline</span>
+            <div class="section-title-inline" style="margin:0; padding:0; color:#0284c7">History of Present Illness</div>
+          </div>
+          <div style="background:#dbeafe; border-left:4px solid #0284c7; padding:12px 16px; border-radius:6px; margin-top:8px">
+            <p style="color:#334155; line-height:1.6; margin:0; font-size:13px">
+              {!! nl2br(e($consultation->history_of_present_illness)) !!}
+            </p>
           </div>
         </div>
         @endif
 
         <!-- Physical Examination -->
-        @if($consultation->physical_examination)
         <div>
-          <div class="section-title-inline"><span class="material-symbols-outlined align-middle me-1" style="font-size:14px">favorite_doctor</span>Physical Examination</div>
-          <div style="background:#f8fafc;border-left:4px solid #059669;padding:12px 16px;border-radius:6px;margin-top:8px">
-            <p style="color:#334155;line-height:1.6;margin:0;font-size:13px">{{ $consultation->physical_examination }}</p>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px">
+            <span class="material-symbols-outlined" style="font-size:18px; color:#059669">favorite_doctor</span>
+            <div class="section-title-inline" style="margin:0; padding:0; color:#059669">Physical Examination</div>
+          </div>
+          <div style="background:#dcfce7; border-left:4px solid #059669; padding:12px 16px; border-radius:6px; margin-top:8px">
+            <p style="color:#334155; line-height:1.6; margin:0; font-size:13px">
+              @if($consultation->physical_examination)
+                {!! nl2br(e($consultation->physical_examination)) !!}
+              @else
+                <span style="color:#94a3b8; font-style:italic">Not documented</span>
+              @endif
+            </p>
           </div>
         </div>
-        @endif
       </div>
     </div>
 
