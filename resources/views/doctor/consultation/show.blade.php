@@ -152,7 +152,7 @@
         <!-- Physical Examination -->
         <div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px">
-            <span class="material-symbols-outlined" style="font-size:18px; color:#059669">favorite_doctor</span>
+            <span class="material-symbols-outlined" style="font-size:18px; color:#059669">medical_information</span>
             <div class="section-title-inline" style="margin:0; padding:0; color:#059669">Physical Examination</div>
           </div>
           <div style="background:#dcfce7; border-left:4px solid #059669; padding:12px 16px; border-radius:6px; margin-top:8px">
