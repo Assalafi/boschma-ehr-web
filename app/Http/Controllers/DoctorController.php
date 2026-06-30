@@ -1644,14 +1644,12 @@ class DoctorController extends Controller
                 $q->where('facility_id', $facilityId);
             });
 
-        // Filter by date
-        if ($request->filled('date')) {
-            $query->whereDate('created_at', $request->date);
+        // Filter by date range
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
         }
-
-        // Filter by doctor
-        if ($request->filled('doctor_id')) {
-            $query->where('doctor_id', $request->doctor_id);
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
         }
 
         // Filter by status
