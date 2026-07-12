@@ -111,18 +111,31 @@
                                     'accepted' => 'success',
                                     'rejected' => 'danger',
                                 ];
-                                $color = $statusColors[$referral->status] ?? 'secondary';
+                                $approvalColors = [
+                                    'pending' => 'secondary',
+                                    'approved' => 'success',
+                                    'rejected' => 'danger',
+                                ];
+                                $statusColor = $statusColors[$referral->status] ?? 'secondary';
+                                $approvalColor = $approvalColors[$referral->approval_status ?? 'pending'] ?? 'secondary';
                             @endphp
-                            <span class="badge bg-{{ $color }}">{{ ucfirst($referral->status) }}</span>
+                            <span class="badge bg-{{ $statusColor }}">{{ ucfirst($referral->status) }}</span>
+                            @if($referral->status === 'pending')
+                                <span class="badge bg-{{ $approvalColor }} ms-1">{{ ucfirst($referral->approval_status ?? 'pending') }}</span>
+                            @endif
                         </td>
                         <td class="text-center">
-                            @if($referral->status === 'pending')
+                            @if($referral->status === 'pending' && $referral->approval_status === 'approved')
                             <form action="{{ route('receptionist.referrals.register', $referral) }}" method="POST" class="d-inline" onsubmit="return confirm('Register this referred patient and create an encounter?')">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-primary">
                                     <span class="material-symbols-outlined me-1 fs-6">person_add</span> Register
                                 </button>
                             </form>
+                            @elseif($referral->status === 'pending' && $referral->approval_status === 'rejected')
+                                <span class="badge bg-danger-subtle text-danger">Rejected</span>
+                            @elseif($referral->status === 'pending')
+                                <span class="badge bg-secondary-subtle text-secondary">Awaiting approval</span>
                             @else
                             <span class="badge bg-success-subtle text-success">Registered</span>
                             @endif

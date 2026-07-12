@@ -17,6 +17,11 @@ class ServiceReferral extends Model
         'service_item_id',
         'reason',
         'status',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'rejected_by',
+        'rejected_at',
     ];
 
     public function encounter()

@@ -65,7 +65,10 @@ class DashboardController extends Controller
         $todayEncounters = Encounter::where('facility_id', $facilityId)->whereDate('created_at', $today)->count();
         $awaitingTriage = Encounter::where('facility_id', $facilityId)->where('status', Encounter::STATUS_REGISTERED)->count();
         $pendingReferrals = \Illuminate\Support\Facades\DB::table('service_referrals')
-            ->where('to_facility_id', $facilityId)->where('status', 'pending')->count();
+            ->where('to_facility_id', $facilityId)
+            ->where('status', 'pending')
+            ->where('approval_status', 'approved')
+            ->count();
         
         $encounterQueue = Encounter::with(['patient.beneficiary', 'program'])
             ->where('facility_id', $facilityId)

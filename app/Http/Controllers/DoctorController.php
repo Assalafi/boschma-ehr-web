@@ -473,6 +473,17 @@ class DoctorController extends Controller
                 ]);
             }
 
+            // Move encounter into "In Consultation" the moment a doctor first opens the step-by-step form.
+            // Only advance from pre-consultation statuses; never overwrite a terminal status.
+            $preConsultationStatuses = [
+                Encounter::STATUS_TRIAGED,
+                Encounter::STATUS_REGISTERED,
+                Encounter::STATUS_WAITING,
+            ];
+            if (in_array($encounter->status, $preConsultationStatuses)) {
+                $encounter->update(['status' => Encounter::STATUS_IN_CONSULTATION]);
+            }
+
             // Also persist to session draft
             $draft = session('consultation_draft_' . $encounter->id, []);
             $draft['presenting_complaints'] = $request->presenting_complaints;
@@ -681,6 +692,7 @@ class DoctorController extends Controller
                 'service_item_id' => null,
                 'reason'          => $request->reason . ($request->clinical_findings ? "\n\nClinical Findings: " . $request->clinical_findings : ''),
                 'status'          => 'pending',
+                'approval_status' => 'pending',
                 'updated_at'      => now(),
             ];
 

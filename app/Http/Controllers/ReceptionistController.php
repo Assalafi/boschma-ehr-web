@@ -33,6 +33,7 @@ class ReceptionistController extends Controller
             ->where('service_referrals.to_facility_id', $facilityId)
             ->where('service_referrals.referral_type', 'patient')
             ->where('service_referrals.status', 'pending')
+            ->where('service_referrals.approval_status', 'approved')
             ->whereNull('service_referrals.service_item_id')
             ->exists();
     }
@@ -198,6 +199,7 @@ class ReceptionistController extends Controller
                 ->where('service_referrals.to_facility_id', $facilityId)
                 ->where('service_referrals.referral_type', 'patient')
                 ->where('service_referrals.status', 'pending')
+                ->where('service_referrals.approval_status', 'approved')
                 ->whereNull('service_referrals.service_item_id')
                 ->pluck('encounters.patient_id');
 
@@ -455,6 +457,7 @@ class ReceptionistController extends Controller
                     ->where('service_referrals.to_facility_id', $facilityId)
                     ->where('service_referrals.referral_type', 'patient')
                     ->where('service_referrals.status', 'pending')
+                    ->where('service_referrals.approval_status', 'approved')
                     ->whereNull('service_referrals.service_item_id')
                     ->select('service_referrals.*', 'facilities.name as from_facility_name')
                     ->first();
@@ -706,9 +709,18 @@ class ReceptionistController extends Controller
             ->whereNull('service_item_id');
         
         if ($status === 'pending') {
-            $query->where('status', 'pending');
+            $query->where('status', 'pending')->where('approval_status', 'approved');
         } elseif ($status === 'processed') {
-            $query->where('status', '!=', 'pending');
+            $query->where(function ($q) {
+                $q->where('status', '!=', 'pending')
+                  ->orWhere('approval_status', 'rejected');
+            });
+        } else {
+            $query->where(function ($q) {
+                $q->where('approval_status', 'approved')
+                  ->orWhere('status', '!=', 'pending')
+                  ->orWhere('approval_status', 'rejected');
+            });
         }
         
         $referrals = $query->orderBy('created_at', 'desc')->paginate(20);
@@ -729,6 +741,10 @@ class ReceptionistController extends Controller
         
         if ($referral->status !== 'pending') {
             return back()->with('error', 'This referral has already been processed.');
+        }
+
+        if ($referral->approval_status !== 'approved') {
+            return back()->with('error', 'This referral is not yet approved by the admin.');
         }
         
         $originalEncounter = Encounter::find($referral->encounter_id);
