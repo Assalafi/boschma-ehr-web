@@ -382,10 +382,7 @@ function _showReferralPopup(data) {
                             <span>${data.message || 'Referral created successfully.'}</span>
                         </div>
                         <div class="d-grid gap-2">
-                            <button type="button" class="btn btn-success" onclick="_downloadReferralPdf('${data.referral_id}')">
-                                <span class="material-symbols-outlined align-middle me-1">download</span>
-                                Download Referral Slip (PDF)
-                            </button>
+                            
                             <button type="button" class="btn btn-outline-primary" onclick="_closeReferralPopup()">
                                 <span class="material-symbols-outlined align-middle me-1">queue</span>
                                 Go to Patient Queue
@@ -412,9 +409,6 @@ function _showReferralPopup(data) {
     });
 }
 
-function _downloadReferralPdf(referralId) {
-    window.location.href = '{{ url("doctor/consultation/referral-pdf") }}/' + referralId;
-}
 
 function _closeReferralPopup() {
     const modal = bootstrap.Modal.getInstance(document.getElementById('referralModal'));

@@ -126,19 +126,24 @@
                         </td>
                         <td class="text-center">
                             @if($referral->status === 'pending' && $referral->approval_status === 'approved')
-                            <form action="{{ route('receptionist.referrals.register', $referral) }}" method="POST" class="d-inline" onsubmit="return confirm('Register this referred patient and create an encounter?')">
+                            <form action="{{ route('receptionist.referrals.register', $referral) }}" method="POST" class="d-block mb-1" onsubmit="return confirm('Register this referred patient and create an encounter?')">
                                 @csrf
-                                <button type="submit" class="btn btn-sm btn-primary">
-                                    <span class="material-symbols-outlined me-1 fs-6">person_add</span> Register
+                                <button type="submit" class="btn btn-sm btn-primary w-100">
+                                    <span class="material-symbols-outlined me-1 fs-6 align-middle">person_add</span> Register
                                 </button>
                             </form>
                             @elseif($referral->status === 'pending' && $referral->approval_status === 'rejected')
-                                <span class="badge bg-danger-subtle text-danger">Rejected</span>
+                                <span class="badge bg-danger-subtle text-danger d-block mb-1">Rejected</span>
                             @elseif($referral->status === 'pending')
-                                <span class="badge bg-secondary-subtle text-secondary">Awaiting approval</span>
+                                <span class="badge bg-secondary-subtle text-secondary d-block mb-1">Awaiting approval</span>
                             @else
-                            <span class="badge bg-success-subtle text-success">Registered</span>
+                                <span class="badge bg-success-subtle text-success d-block mb-1">Registered</span>
                             @endif
+                            
+                            <a href="{{ route('doctor.consultation.referral-pdf', $referral->id) }}" class="btn btn-sm btn-success w-100 d-inline-flex align-items-center justify-content-center" target="_blank">
+                                <span class="material-symbols-outlined align-middle me-1" style="font-size:16px">download</span>
+                                Download Referral Slip (PDF)
+                            </a>
                         </td>
                     </tr>
                     @empty
