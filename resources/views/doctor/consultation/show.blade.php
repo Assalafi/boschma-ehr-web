@@ -93,18 +93,12 @@
         </div>
       </div>
 
-      @if($consultation->status == 'Completedss')
+      @if($consultation->status !== 'Completed')
       <div class="doc-card">
         <div style="padding:16px 20px;display:flex;flex-direction:column;gap:8px">
-          <button class="doc-btn doc-btn-primary" style="justify-content:center" data-bs-toggle="modal" data-bs-target="#prescriptionModal">
-            <span class="material-symbols-outlined" style="font-size:16px">medication</span> Add Prescription
-          </button>
-          <button class="doc-btn doc-btn-info" style="justify-content:center" data-bs-toggle="modal" data-bs-target="#investigationModal">
-            <span class="material-symbols-outlined" style="font-size:16px">biotech</span> Request Investigation
-          </button>
-          <button class="doc-btn doc-btn-success" style="justify-content:center" data-bs-toggle="modal" data-bs-target="#completeModal">
-            <span class="material-symbols-outlined" style="font-size:16px">check_circle</span> Complete Consultation
-          </button>
+          <a href="{{ route('doctor.consultation.start', $consultation->encounter_id) }}" class="doc-btn doc-btn-primary" style="justify-content:center; padding: 10px; font-size: 13px;">
+            <span class="material-symbols-outlined" style="font-size:18px">play_arrow</span> Continue Consultation
+          </a>
         </div>
       </div>
       @endif
