@@ -48,7 +48,7 @@
 </div>
 
 <div class="card border-0 rounded-3">
-    <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center">
+    <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
         <h5 class="mb-0 fw-semibold">
             @if(($status ?? 'pending') === 'pending')
                 Pending Referrals
@@ -58,7 +58,29 @@
                 All Referrals
             @endif
         </h5>
-        <span class="badge bg-primary">{{ $referrals->total() ?? 0 }} records</span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-primary">{{ $referrals->total() ?? 0 }} records</span>
+            
+            <form action="{{ route('receptionist.referrals') }}" method="GET" class="d-flex gap-2 mb-0">
+                <input type="hidden" name="status" value="{{ $status ?? 'pending' }}">
+                <select name="program" class="form-select form-select-sm" style="min-width: 150px;">
+                    <option value="">All Programs</option>
+                    @isset($programs)
+                        @foreach($programs as $prog)
+                            <option value="{{ $prog->id }}" {{ ($program_id ?? '') == $prog->id ? 'selected' : '' }}>
+                                {{ $prog->name }}
+                            </option>
+                        @endforeach
+                    @endisset
+                </select>
+                <div class="input-group input-group-sm" style="width: 250px;">
+                    <input type="text" name="search" class="form-control" placeholder="Search by name, ID..." value="{{ $search ?? '' }}">
+                    <button class="btn btn-outline-secondary" type="submit">
+                        <span class="material-symbols-outlined fs-6 align-middle">search</span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -140,9 +162,8 @@
                                 <span class="badge bg-success-subtle text-success d-block mb-1">Registered</span>
                             @endif
                             
-                            <a href="{{ route('doctor.consultation.referral-pdf', $referral->id) }}" class="btn btn-sm btn-success w-100 d-inline-flex align-items-center justify-content-center" target="_blank">
-                                <span class="material-symbols-outlined align-middle me-1" style="font-size:16px">download</span>
-                                Download Referral Slip (PDF)
+                            <a href="{{ route('doctor.consultation.referral-pdf', $referral->id) }}" class="btn btn-sm btn-success w-100 d-inline-flex align-items-center justify-content-center" title="Download Referral Slip (PDF)" target="_blank">
+                                <span class="material-symbols-outlined align-middle" style="font-size:16px">download</span>
                             </a>
                         </td>
                     </tr>

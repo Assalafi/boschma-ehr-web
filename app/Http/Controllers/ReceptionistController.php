@@ -723,9 +723,25 @@ class ReceptionistController extends Controller
             });
         }
         
-        $referrals = $query->orderBy('created_at', 'desc')->paginate(20);
+        if ($request->filled('program')) {
+            $query->whereHas('encounter', function($q) use ($request) {
+                $q->where('program_id', $request->program);
+            });
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('encounter.patient', function($q) use ($search) {
+                $q->search($search);
+            });
+        }
         
-        return view('receptionist.referrals.index', compact('referrals', 'status'));
+        $referrals = $query->orderBy('created_at', 'desc')->paginate(20);
+        $programs = \App\Models\Program::orderBy('name')->get();
+        $search = $request->get('search');
+        $program_id = $request->get('program');
+        
+        return view('receptionist.referrals.index', compact('referrals', 'status', 'programs', 'search', 'program_id'));
     }
 
     /**
