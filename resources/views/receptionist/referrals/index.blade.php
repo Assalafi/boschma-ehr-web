@@ -48,22 +48,25 @@
 </div>
 
 <div class="card border-0 rounded-3">
-    <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <h5 class="mb-0 fw-semibold">
-            @if(($status ?? 'pending') === 'pending')
-                Pending Referrals
-            @elseif($status === 'processed')
-                Processed Referrals
-            @else
-                All Referrals
-            @endif
-        </h5>
-        <div class="d-flex align-items-center gap-3">
-            <span class="badge bg-primary">{{ $referrals->total() ?? 0 }} records</span>
+    <div class="card-header bg-white border-bottom p-3 d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-semibold">
+                @if(($status ?? 'pending') === 'pending')
+                    Pending Referrals
+                @elseif($status === 'processed')
+                    Processed Referrals
+                @else
+                    All Referrals
+                @endif
+            </h5>
+            <span class="badge bg-primary d-lg-none">{{ $referrals->total() ?? 0 }} records</span>
+        </div>
+        <div class="d-flex flex-column flex-sm-row align-items-stretch align-items-sm-center gap-2">
+            <span class="badge bg-primary d-none d-lg-inline-flex me-2">{{ $referrals->total() ?? 0 }} records</span>
             
-            <form action="{{ route('receptionist.referrals') }}" method="GET" class="d-flex gap-2 mb-0">
+            <form action="{{ route('receptionist.referrals') }}" method="GET" class="d-flex flex-column flex-sm-row gap-2 mb-0 w-100">
                 <input type="hidden" name="status" value="{{ $status ?? 'pending' }}">
-                <select name="program" class="form-select form-select-sm" style="min-width: 150px;">
+                <select name="program" class="form-select form-select-sm" style="min-width: 150px; width: auto;">
                     <option value="">All Programs</option>
                     @isset($programs)
                         @foreach($programs as $prog)
@@ -73,10 +76,10 @@
                         @endforeach
                     @endisset
                 </select>
-                <div class="input-group input-group-sm" style="width: 250px;">
+                <div class="input-group input-group-sm w-100" style="min-width: 280px; max-width: 450px;">
                     <input type="text" name="search" class="form-control" placeholder="Search by name, ID..." value="{{ $search ?? '' }}">
-                    <button class="btn btn-outline-secondary" type="submit">
-                        <span class="material-symbols-outlined fs-6 align-middle">search</span>
+                    <button class="btn btn-outline-secondary d-flex align-items-center" type="submit">
+                        <span class="material-symbols-outlined fs-6">search</span>
                     </button>
                 </div>
             </form>
