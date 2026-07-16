@@ -732,18 +732,38 @@ class DoctorController extends Controller
                 ->whereNull('service_item_id')
                 ->first();
 
-            // Generate and save authorization code
-            $authCode = 'AUTH' . date('Ymd') . str_pad($referral->id % 10000, 4, '0', STR_PAD_LEFT);
-            DB::table('authorizations')->insert([
-                'authorization_code' => $authCode,
-                'patient_id' => $encounter->patient_id,
-                'encounter_id' => $encounter->id,
-                'service_referral_id' => $referral->id,
-                'approved_by' => auth()->user()->id,
-                'expires_at' => now()->addDays(30),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            if ($referral) {
+                $existingAuth = DB::table('authorizations')
+                    ->where('service_referral_id', $referral->id)
+                    ->first();
+
+                if (!$existingAuth) {
+                    // Generate and save authorization code
+                    $authCode = 'AUTH' . date('Ymd') . str_pad($referral->id % 10000, 4, '0', STR_PAD_LEFT);
+                    
+                    // Ensure auth code is unique
+                    while (DB::table('authorizations')->where('authorization_code', $authCode)->exists()) {
+                        $authCode = 'AUTH' . date('Ymd') . rand(1000, 9999);
+                    }
+
+                    DB::table('authorizations')->insert([
+                        'authorization_code' => $authCode,
+                        'patient_id' => $encounter->patient_id,
+                        'encounter_id' => $encounter->id,
+                        'service_referral_id' => $referral->id,
+                        'approved_by' => auth()->user()->id,
+                        'expires_at' => now()->addDays(30),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } else {
+                    DB::table('authorizations')
+                        ->where('id', $existingAuth->id)
+                        ->update([
+                            'updated_at' => now(),
+                        ]);
+                }
+            }
             
             return response()->json([
                 'success' => true,
