@@ -43,6 +43,11 @@
                     <span class="material-symbols-outlined me-1 fs-6">list</span> All
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link {{ ($status ?? '') === 'outgoing' ? 'active' : '' }}" href="{{ route('receptionist.referrals', ['status' => 'outgoing']) }}">
+                    <span class="material-symbols-outlined me-1 fs-6">outbound</span> Outgoing
+                </a>
+            </li>
         </ul>
     </div>
 </div>
@@ -55,6 +60,8 @@
                     Pending Referrals
                 @elseif($status === 'processed')
                     Processed Referrals
+                @elseif($status === 'outgoing')
+                    Outgoing Referrals
                 @else
                     All Referrals
                 @endif
@@ -93,7 +100,7 @@
                         <th>Date</th>
                         <th>Patient</th>
                         <th>BOSCHMA ID</th>
-                        <th>Referred From</th>
+                        <th>{{ ($status ?? 'pending') === 'outgoing' ? 'Referred To' : 'Referred From' }}</th>
                         <th>Reason</th>
                         <th>Status</th>
                         <th class="text-center">Actions</th>
@@ -126,7 +133,11 @@
                         </td>
                         <td><span class="badge bg-light text-dark">{{ $patient->enrollee_number ?? 'N/A' }}</span></td>
                         <td>
-                            <span class="fw-medium">{{ $referral->fromFacility->name ?? 'Unknown' }}</span>
+                            @if(($status ?? 'pending') === 'outgoing')
+                                <span class="fw-medium">{{ $referral->toFacility->name ?? 'Unknown' }}</span>
+                            @else
+                                <span class="fw-medium">{{ $referral->fromFacility->name ?? 'Unknown' }}</span>
+                            @endif
                         </td>
                         <td style="max-width:200px"><small>{{ Str::limit($referral->reason, 80) }}</small></td>
                         <td>
@@ -150,7 +161,7 @@
                             @endif
                         </td>
                         <td class="text-center">
-                            @if($referral->status === 'pending' && $referral->approval_status === 'approved')
+                            @if(($status ?? 'pending') !== 'outgoing' && $referral->status === 'pending' && $referral->approval_status === 'approved')
                             <form action="{{ route('receptionist.referrals.register', $referral) }}" method="POST" class="d-block mb-1" onsubmit="return confirm('Register this referred patient and create an encounter?')">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-primary w-100">
@@ -160,14 +171,16 @@
                             @elseif($referral->status === 'pending' && $referral->approval_status === 'rejected')
                                 <span class="badge bg-danger-subtle text-danger d-block mb-1">Rejected</span>
                             @elseif($referral->status === 'pending')
-                                <span class="badge bg-secondary-subtle text-secondary d-block mb-1">Awaiting approval</span>
+                                <span class="badge bg-secondary-subtle text-secondary d-block mb-1">Awaiting {{ $referral->approval_status === 'approved' ? 'Registration' : 'Approval' }}</span>
                             @else
                                 <span class="badge bg-success-subtle text-success d-block mb-1">Registered</span>
                             @endif
                             
-                            <a href="{{ route('doctor.consultation.referral-pdf', $referral->id) }}" class="btn btn-sm btn-success w-100 d-inline-flex align-items-center justify-content-center" title="Download Referral Slip (PDF)" target="_blank">
+                            @if($referral->approval_status === 'approved' || $referral->status !== 'pending')
+                            <a href="{{ route('doctor.consultation.referral-pdf', $referral->id) }}" class="btn btn-sm btn-success w-100 d-inline-flex align-items-center justify-content-center mt-1" title="Download Referral Slip (PDF)" target="_blank">
                                 <span class="material-symbols-outlined align-middle" style="font-size:16px">download</span>
                             </a>
+                            @endif
                         </td>
                     </tr>
                     @empty

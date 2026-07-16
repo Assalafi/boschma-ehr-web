@@ -703,24 +703,28 @@ class ReceptionistController extends Controller
         $facilityId = $this->getFacilityId();
         $status = $request->get('status', 'pending');
         
-        $query = \App\Models\ServiceReferral::with(['encounter.patient', 'encounter.program', 'fromFacility'])
-            ->where('to_facility_id', $facilityId)
+        $query = \App\Models\ServiceReferral::with(['encounter.patient', 'encounter.program', 'fromFacility', 'toFacility'])
             ->where('referral_type', 'patient')
             ->whereNull('service_item_id');
         
-        if ($status === 'pending') {
-            $query->where('status', 'pending')->where('approval_status', 'approved');
-        } elseif ($status === 'processed') {
-            $query->where(function ($q) {
-                $q->where('status', '!=', 'pending')
-                  ->orWhere('approval_status', 'rejected');
-            });
+        if ($status === 'outgoing') {
+            $query->where('from_facility_id', $facilityId);
         } else {
-            $query->where(function ($q) {
-                $q->where('approval_status', 'approved')
-                  ->orWhere('status', '!=', 'pending')
-                  ->orWhere('approval_status', 'rejected');
-            });
+            $query->where('to_facility_id', $facilityId);
+            if ($status === 'pending') {
+                $query->where('status', 'pending')->where('approval_status', 'approved');
+            } elseif ($status === 'processed') {
+                $query->where(function ($q) {
+                    $q->where('status', '!=', 'pending')
+                      ->orWhere('approval_status', 'rejected');
+                });
+            } else {
+                $query->where(function ($q) {
+                    $q->where('approval_status', 'approved')
+                      ->orWhere('status', '!=', 'pending')
+                      ->orWhere('approval_status', 'rejected');
+                });
+            }
         }
         
         if ($request->filled('program')) {
