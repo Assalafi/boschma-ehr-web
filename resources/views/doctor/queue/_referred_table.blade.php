@@ -70,11 +70,21 @@
         </td>
         <td style="padding:12px 14px;vertical-align:middle;font-size:12px;color:#64748b">{{ $encounter->updated_at->format('d M Y H:i') }}</td>
         <td style="padding:12px 14px;vertical-align:middle;text-align:center">
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
           @if($consultation)
           <a href="{{ route('doctor.consultation.show', $consultation) }}" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#e67e22;color:#fff;text-decoration:none">
             <span class="material-symbols-outlined" style="font-size:14px">visibility</span> View
           </a>
           @else <span style="color:#94a3b8;font-size:12px">N/A</span> @endif
+          @if($referral && $referral->status === 'pending')
+          <form method="POST" action="{{ route('doctor.queue.recall-referral', $encounter) }}" style="margin:0" onsubmit="return confirm('Recall this referral and continue consultation on this patient?')">
+            @csrf
+            <button type="submit" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;background:#2563eb;color:#fff;border:none;cursor:pointer">
+              <span class="material-symbols-outlined" style="font-size:14px">undo</span> Recall
+            </button>
+          </form>
+          @endif
+          </div>
         </td>
       </tr>
       @empty

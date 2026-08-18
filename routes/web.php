@@ -159,6 +159,7 @@ Route::post('/consultation/{encounter}/discharge', [DoctorController::class, 'di
         Route::post('/consultation/{consultation}/complete', [DoctorController::class, 'completeConsultation'])->name('consultation.complete');
         Route::post('/consultation/{consultation}/resume', [DoctorController::class, 'resumeConsultation'])->name('consultation.resume');
         Route::post('/queue/{encounter}/restore', [DoctorController::class, 'restoreEncounter'])->name('queue.restore');
+        Route::post('/queue/{encounter}/recall-referral', [DoctorController::class, 'recallReferral'])->name('queue.recall-referral');
         Route::get('/consultation-history', [DoctorController::class, 'consultationHistory'])->name('consultation.history');
         
         // Patient search & dashboard

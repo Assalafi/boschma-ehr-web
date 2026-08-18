@@ -1664,6 +1664,70 @@ class DoctorController extends Controller
     }
 
     /**
+     * Recall a pending patient referral so the doctor can continue consultation.
+     */
+    public function recallReferral(Request $request, Encounter $encounter)
+    {
+        // Find the pending patient-level referral
+        $referral = DB::table('service_referrals')
+            ->where('encounter_id', $encounter->id)
+            ->where('referral_type', 'patient')
+            ->whereNull('service_item_id')
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$referral) {
+            return back()->with('error', 'No pending referral found to recall.');
+        }
+
+        // Check if a claim has already been raised for this encounter
+        if ($encounter->facilityClaim) {
+            return back()->with('error', 'Cannot recall: A claim has already been raised for this encounter.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Cancel the pending referral
+            DB::table('service_referrals')->where('id', $referral->id)->update([
+                'status'     => 'cancelled',
+                'updated_at' => now(),
+            ]);
+
+            // Return the encounter to in-consultation
+            $encounter->update([
+                'status'  => Encounter::STATUS_IN_CONSULTATION,
+                'outcome' => null,
+            ]);
+
+            // Re-open the consultation so the doctor can continue
+            $consultation = $encounter->consultations->first();
+            if ($consultation) {
+                $consultation->update([
+                    'status' => ClinicalConsultation::STATUS_IN_PROGRESS,
+                ]);
+            }
+
+            // Log the action
+            EncounterAction::create([
+                'encounter_id' => $encounter->id,
+                'user_id'      => Auth::id(),
+                'action_type'  => ActionType::CONSULTATION,
+                'description'  => 'Referral recalled and consultation resumed.',
+                'action_time'  => now(),
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('doctor.consultation.start', $encounter)
+                ->with('success', 'Referral recalled. You can now continue the consultation.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to recall referral: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Consultation History
      */
     public function consultationHistory(Request $request)
