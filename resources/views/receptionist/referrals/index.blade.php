@@ -162,12 +162,18 @@
                         </td>
                         <td class="text-center">
                             @if(($status ?? 'pending') !== 'outgoing' && $referral->status === 'pending' && $referral->approval_status === 'approved')
-                            <form action="{{ route('receptionist.referrals.register', $referral) }}" method="POST" class="d-block mb-1" onsubmit="return confirm('Register this referred patient and create an encounter?')">
-                                @csrf
-                                <button type="submit" class="btn btn-sm btn-primary w-100">
-                                    <span class="material-symbols-outlined me-1 fs-6 align-middle">person_add</span> Register
-                                </button>
-                            </form>
+                            <button type="button" 
+                                class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center mb-1"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#registerReferralModal"
+                                data-action="{{ route('receptionist.referrals.register', $referral) }}"
+                                data-name="{{ $patient->enrollee_name ?? 'N/A' }}"
+                                data-boschma="{{ $patient->enrollee_number ?? 'N/A' }}"
+                                data-facility="{{ $referral->fromFacility->name ?? 'Referring Facility' }}"
+                                data-reason="{{ $referral->reason ?? 'General Referral' }}"
+                                data-date="{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('M d, Y H:i') : '' }}">
+                                <span class="material-symbols-outlined me-1 fs-6 align-middle">person_add</span> Register
+                            </button>
                             @elseif($referral->status === 'pending' && $referral->approval_status === 'rejected')
                                 <span class="badge bg-danger-subtle text-danger d-block mb-1">Rejected</span>
                             @elseif($referral->status === 'pending')
@@ -201,4 +207,6 @@
     </div>
     @endif
 </div>
+
+@include('receptionist.referrals._register_modal')
 @endsection
