@@ -95,9 +95,9 @@
                         <td><span class="badge bg-light text-dark fw-medium">{{ $beneficiary->boschma_no }}</span></td>
                         <td>{{ $beneficiary->nin ?? 'N/A' }}</td>
                         <td>{{ $beneficiary->phone ?? 'N/A' }}</td>
-                        <td>{{ $beneficiary->program->name ?? $beneficiary->program_name ?? 'N/A' }}</td>
+                        <td>{{ $beneficiary->program->name ?? 'N/A' }}</td>
                         <td>
-                            @if($beneficiary->status === 'Referred' || !empty($beneficiary->is_referral))
+                            @if($beneficiary->status === 'Referred')
                                 <span class="badge bg-warning">Referred</span>
                             @elseif($beneficiary->status === 'Active')
                                 <span class="badge bg-success">Active</span>
@@ -106,24 +106,9 @@
                             @endif
                         </td>
                         <td class="text-center">
-                            @if(!empty($beneficiary->is_referral) && !empty($beneficiary->referral_id))
-                                <button type="button" 
-                                    class="btn btn-sm btn-primary d-inline-flex align-items-center"
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#registerReferralModal"
-                                    data-action="{{ route('receptionist.referrals.register', $beneficiary->referral_id) }}"
-                                    data-name="{{ $beneficiary->name }}"
-                                    data-boschma="{{ $beneficiary->boschma_no }}"
-                                    data-facility="{{ $beneficiary->from_facility_name ?? 'Referring Facility' }}"
-                                    data-reason="{{ $beneficiary->referral_reason ?? 'General Referral' }}"
-                                    data-date="{{ !empty($beneficiary->referral_date) ? \Carbon\Carbon::parse($beneficiary->referral_date)->format('M d, Y H:i') : '' }}">
-                                    <span class="material-symbols-outlined me-1 fs-6 align-middle">person_add</span> Register
-                                </button>
-                            @else
-                                <a href="{{ route('receptionist.beneficiaries.show', [$beneficiary->type, $beneficiary->id]) }}" class="btn btn-sm btn-primary d-inline-flex align-items-center">
-                                    <span class="material-symbols-outlined me-1 fs-6 align-middle">login</span> Register
-                                </a>
-                            @endif
+                            <a href="{{ route('receptionist.beneficiaries.show', [$beneficiary->type, $beneficiary->id]) }}" class="btn btn-sm btn-primary">
+                                <span class="material-symbols-outlined fs-6">login</span> Register
+                            </a>
                         </td>
                     </tr>
                     @empty
@@ -150,6 +135,4 @@
     </div>
 </div>
 @endif
-
-@include('receptionist.referrals._register_modal')
 @endsection
