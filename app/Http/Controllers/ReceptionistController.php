@@ -807,12 +807,18 @@ class ReceptionistController extends Controller
         $facilityId = $this->getFacilityId();
         $status = $request->get('status', 'pending');
         
-        $query = \App\Models\ServiceReferral::with(['encounter.patient', 'encounter.program', 'fromFacility', 'toFacility'])
+        $query = \App\Models\ServiceReferral::with(['encounter.patient', 'encounter.program', 'fromFacility', 'toFacility', 'rejectedByUser'])
             ->where('referral_type', 'patient')
             ->whereNull('service_item_id');
         
         if ($status === 'outgoing') {
             $query->where('from_facility_id', $facilityId);
+        } elseif ($status === 'rejected') {
+            $query->where('to_facility_id', $facilityId)
+                ->where(function ($q) {
+                    $q->where('status', 'rejected')
+                      ->orWhere('approval_status', 'rejected');
+                });
         } else {
             $query->where('to_facility_id', $facilityId);
             if ($status === 'pending') {
@@ -911,6 +917,54 @@ class ReceptionistController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to register referred patient: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reject a referred patient
+     */
+    public function rejectReferral(Request $request, \App\Models\ServiceReferral $referral)
+    {
+        $facilityId = $this->getFacilityId();
+        
+        if ((int) $referral->to_facility_id !== (int) $facilityId) {
+            abort(403, 'This referral is not for your facility.');
+        }
+        
+        if ($referral->status !== 'pending') {
+            return back()->with('error', 'This referral has already been processed.');
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:1000',
+        ]);
+        
+        DB::beginTransaction();
+        try {
+            $referral->update([
+                'status'           => 'rejected',
+                'approval_status'  => 'rejected',
+                'rejection_reason' => $validated['rejection_reason'],
+                'rejected_by'      => Auth::id(),
+                'rejected_at'      => now(),
+            ]);
+
+            if ($referral->encounter_id) {
+                EncounterAction::create([
+                    'encounter_id' => $referral->encounter_id,
+                    'user_id'      => Auth::id(),
+                    'action_type'  => ActionType::REGISTRATION,
+                    'description'  => 'Referral rejected by ' . Auth::user()->name . '. Reason: ' . Str::limit($validated['rejection_reason'], 150),
+                    'action_time'  => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return back()->with('success', 'Referral has been rejected successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to reject referral: ' . $e->getMessage());
         }
     }
 

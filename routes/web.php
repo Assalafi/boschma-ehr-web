@@ -71,6 +71,7 @@ Route::middleware(['auth'])->group(function () {
         // Referrals
         Route::get('/referrals', [ReceptionistController::class, 'referrals'])->name('referrals');
         Route::post('/referrals/{referral}/register', [ReceptionistController::class, 'registerReferral'])->name('referrals.register');
+        Route::post('/referrals/{referral}/reject', [ReceptionistController::class, 'rejectReferral'])->name('referrals.reject');
         
         // Reports
         Route::get('/reports', [ReceptionistController::class, 'reports'])->name('reports');

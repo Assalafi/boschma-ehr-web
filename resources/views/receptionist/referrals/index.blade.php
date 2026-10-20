@@ -39,6 +39,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {{ ($status ?? '') === 'rejected' ? 'active' : '' }}" href="{{ route('receptionist.referrals', ['status' => 'rejected']) }}">
+                    <span class="material-symbols-outlined me-1 fs-6">cancel</span> Rejected
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link {{ ($status ?? '') === 'all' ? 'active' : '' }}" href="{{ route('receptionist.referrals', ['status' => 'all']) }}">
                     <span class="material-symbols-outlined me-1 fs-6">list</span> All
                 </a>
@@ -60,6 +65,8 @@
                     Pending Referrals
                 @elseif($status === 'processed')
                     Processed Referrals
+                @elseif($status === 'rejected')
+                    Rejected Referrals
                 @elseif($status === 'outgoing')
                     Outgoing Referrals
                 @else
@@ -110,15 +117,16 @@
                     @forelse($referrals as $referral)
                     @php
                         $patient = $referral->encounter->patient ?? null;
+                        $isRejected = $referral->status === 'rejected' || ($referral->approval_status ?? '') === 'rejected';
                     @endphp
-                    <tr>
+                    <tr class="{{ $isRejected ? 'table-danger-subtle' : '' }}">
                         <td>
                             <span class="fw-medium">{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('M d, Y') : 'N/A' }}</span>
                             <br><small class="text-muted">{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('H:i') : '' }}</small>
                         </td>
                         <td>
                             <div class="d-flex align-items-center">
-                                <div class="wh-40 bg-info-subtle rounded-circle d-flex align-items-center justify-content-center me-2 overflow-hidden">
+                                <div class="wh-40 bg-info-subtle rounded-circle d-flex align-items-center justify-content-center me-2 overflow-hidden flex-shrink-0">
                                     @if($patient && $patient->enrollee_photo)
                                         <img src="{{ $patient->enrollee_photo }}" class="rounded-circle wh-40 object-fit-cover" alt="">
                                     @else
@@ -139,50 +147,111 @@
                                 <span class="fw-medium">{{ $referral->fromFacility->name ?? 'Unknown' }}</span>
                             @endif
                         </td>
-                        <td style="max-width:200px"><small>{{ Str::limit($referral->reason, 80) }}</small></td>
-                        <td>
-                            @php
-                                $statusColors = [
-                                    'pending' => 'warning',
-                                    'accepted' => 'success',
-                                    'rejected' => 'danger',
-                                ];
-                                $approvalColors = [
-                                    'pending' => 'secondary',
-                                    'approved' => 'success',
-                                    'rejected' => 'danger',
-                                ];
-                                $statusColor = $statusColors[$referral->status] ?? 'secondary';
-                                $approvalColor = $approvalColors[$referral->approval_status ?? 'pending'] ?? 'secondary';
-                            @endphp
-                            <span class="badge bg-{{ $statusColor }}">{{ ucfirst($referral->status) }}</span>
-                            @if($referral->status === 'pending')
-                                <span class="badge bg-{{ $approvalColor }} ms-1">{{ ucfirst($referral->approval_status ?? 'pending') }}</span>
+                        <td style="min-width: 220px; max-width: 320px;">
+                            <div class="mb-1">
+                                <small class="text-secondary d-block">
+                                    <strong>Referral:</strong> {{ Str::limit($referral->reason, 80) }}
+                                </small>
+                            </div>
+                            @if($isRejected)
+                                <div class="p-2 rounded bg-danger-subtle border border-danger-subtle text-danger" style="font-size: 12px; line-height: 1.35;">
+                                    <div class="fw-bold d-flex align-items-center gap-1 mb-1">
+                                        <span class="material-symbols-outlined" style="font-size: 15px;">cancel</span>
+                                        <span>Reason for Rejection:</span>
+                                    </div>
+                                    <div class="text-dark fw-medium text-break">
+                                        {{ $referral->rejection_reason ?: 'No reason specified' }}
+                                    </div>
+                                    @if($referral->rejected_at)
+                                        <div class="text-muted mt-1" style="font-size: 11px;">
+                                            Rejected {{ \Carbon\Carbon::parse($referral->rejected_at)->format('M d, Y H:i') }}
+                                            @if($referral->rejectedByUser)
+                                                • by {{ $referral->rejectedByUser->name }}
+                                            @endif
+                                        </div>
+                                    @endif
+                                </div>
                             @endif
                         </td>
-                        <td class="text-center">
-                            @if(($status ?? 'pending') !== 'outgoing' && $referral->status === 'pending' && $referral->approval_status === 'approved')
-                            <button type="button" 
-                                class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center mb-1"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#registerReferralModal"
-                                data-action="{{ route('receptionist.referrals.register', $referral) }}"
-                                data-name="{{ $patient->enrollee_name ?? 'N/A' }}"
-                                data-boschma="{{ $patient->enrollee_number ?? 'N/A' }}"
-                                data-facility="{{ $referral->fromFacility->name ?? 'Referring Facility' }}"
-                                data-reason="{{ $referral->reason ?? 'General Referral' }}"
-                                data-date="{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('M d, Y H:i') : '' }}">
-                                <span class="material-symbols-outlined me-1 fs-6 align-middle">person_add</span> Register
-                            </button>
-                            @elseif($referral->status === 'pending' && $referral->approval_status === 'rejected')
-                                <span class="badge bg-danger-subtle text-danger d-block mb-1">Rejected</span>
+                        <td>
+                            @if($isRejected)
+                                <span class="badge bg-danger d-inline-flex align-items-center gap-1">
+                                    <span class="material-symbols-outlined" style="font-size: 13px;">cancel</span> Rejected
+                                </span>
+                                @if($referral->rejection_reason)
+                                    <div class="text-danger small mt-1" style="font-size: 11px; max-width: 170px;">
+                                        <span class="fw-semibold">Reason:</span> {{ Str::limit($referral->rejection_reason, 40) }}
+                                    </div>
+                                @endif
+                            @else
+                                @php
+                                    $statusColors = [
+                                        'pending' => 'warning',
+                                        'accepted' => 'success',
+                                        'rejected' => 'danger',
+                                    ];
+                                    $approvalColors = [
+                                        'pending' => 'secondary',
+                                        'approved' => 'success',
+                                        'rejected' => 'danger',
+                                    ];
+                                    $statusColor = $statusColors[$referral->status] ?? 'secondary';
+                                    $approvalColor = $approvalColors[$referral->approval_status ?? 'pending'] ?? 'secondary';
+                                @endphp
+                                <span class="badge bg-{{ $statusColor }}">{{ ucfirst($referral->status) }}</span>
+                                @if($referral->status === 'pending')
+                                    <span class="badge bg-{{ $approvalColor }} ms-1">{{ ucfirst($referral->approval_status ?? 'pending') }}</span>
+                                @endif
+                            @endif
+                        </td>
+                        <td class="text-center" style="min-width: 130px;">
+                            @if($isRejected)
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle d-block mb-1 py-1">
+                                    <span class="material-symbols-outlined fs-6 align-middle me-1">cancel</span> Rejected
+                                </span>
+                                <button type="button" 
+                                    class="btn btn-sm btn-outline-danger w-100 d-inline-flex align-items-center justify-content-center mb-1"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#viewRejectionModal"
+                                    data-name="{{ $patient->enrollee_name ?? 'N/A' }}"
+                                    data-boschma="{{ $patient->enrollee_number ?? 'N/A' }}"
+                                    data-facility="{{ (($status ?? 'pending') === 'outgoing' ? ($referral->toFacility->name ?? 'Receiving Facility') : ($referral->fromFacility->name ?? 'Referring Facility')) }}"
+                                    data-reason="{{ $referral->reason ?? 'N/A' }}"
+                                    data-rejection-reason="{{ $referral->rejection_reason ?: 'No rejection reason specified' }}"
+                                    data-rejected-at="{{ $referral->rejected_at ? \Carbon\Carbon::parse($referral->rejected_at)->format('M d, Y H:i') : '' }}"
+                                    data-rejected-by="{{ $referral->rejectedByUser->name ?? '' }}">
+                                    <span class="material-symbols-outlined me-1" style="font-size:16px">info</span> View Reason
+                                </button>
+                            @elseif(($status ?? 'pending') !== 'outgoing' && $referral->status === 'pending' && $referral->approval_status === 'approved')
+                                <button type="button" 
+                                    class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center mb-1"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#registerReferralModal"
+                                    data-action="{{ route('receptionist.referrals.register', $referral) }}"
+                                    data-name="{{ $patient->enrollee_name ?? 'N/A' }}"
+                                    data-boschma="{{ $patient->enrollee_number ?? 'N/A' }}"
+                                    data-facility="{{ $referral->fromFacility->name ?? 'Referring Facility' }}"
+                                    data-reason="{{ $referral->reason ?? 'General Referral' }}"
+                                    data-date="{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('M d, Y H:i') : '' }}">
+                                    <span class="material-symbols-outlined me-1 fs-6 align-middle">person_add</span> Register
+                                </button>
+                                <button type="button"
+                                    class="btn btn-sm btn-outline-danger w-100 d-inline-flex align-items-center justify-content-center mb-1"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#rejectReferralModal"
+                                    data-action="{{ route('receptionist.referrals.reject', $referral) }}"
+                                    data-name="{{ $patient->enrollee_name ?? 'N/A' }}"
+                                    data-boschma="{{ $patient->enrollee_number ?? 'N/A' }}"
+                                    data-facility="{{ $referral->fromFacility->name ?? 'Referring Facility' }}">
+                                    <span class="material-symbols-outlined me-1 fs-6 align-middle">close</span> Reject
+                                </button>
                             @elseif($referral->status === 'pending')
                                 <span class="badge bg-secondary-subtle text-secondary d-block mb-1">Awaiting {{ $referral->approval_status === 'approved' ? 'Registration' : 'Approval' }}</span>
                             @else
                                 <span class="badge bg-success-subtle text-success d-block mb-1">Registered</span>
                             @endif
                             
-                            @if($referral->approval_status === 'approved' || $referral->status !== 'pending')
+                            @if(($referral->approval_status === 'approved' || $referral->status !== 'pending') && !$isRejected)
                             <a href="{{ route('doctor.consultation.referral-pdf', $referral->id) }}" class="btn btn-sm btn-success w-100 d-inline-flex align-items-center justify-content-center mt-1" title="Download Referral Slip (PDF)" target="_blank">
                                 <span class="material-symbols-outlined align-middle" style="font-size:16px">download</span>
                             </a>
@@ -209,4 +278,6 @@
 </div>
 
 @include('receptionist.referrals._register_modal')
+@include('receptionist.referrals._reject_modal')
+@include('receptionist.referrals._view_rejection_modal')
 @endsection
