@@ -117,17 +117,7 @@ class ReceptionistController extends Controller
     public function searchBeneficiary(Request $request)
     {
         $facilityId = $this->getFacilityId();
-        $query = $request->get('q', $request->get('query', ''));
-        
-        $pendingReferrals = \App\Models\ServiceReferral::with(['encounter.patient', 'fromFacility'])
-            ->where('to_facility_id', $facilityId)
-            ->where('referral_type', 'patient')
-            ->where('status', 'pending')
-            ->where('approval_status', 'approved')
-            ->whereNull('service_item_id')
-            ->orderBy('created_at', 'desc')
-            ->take(10)
-            ->get();
+        $query = $request->get('q');
         
         $enrollees = collect();
         
@@ -389,7 +379,7 @@ class ReceptionistController extends Controller
         
         // Keep variable name for backward compat with view
         $beneficiaries = $enrollees;
-        return view('receptionist.beneficiaries.search', compact('beneficiaries', 'query', 'pendingReferrals'));
+        return view('receptionist.beneficiaries.search', compact('beneficiaries', 'query'));
     }
 
     /**
@@ -450,7 +440,6 @@ class ReceptionistController extends Controller
         // Get recent encounters and check for ongoing encounter
         $recentEncounters = [];
         $ongoingEncounter = null;
-        $pendingReferral = null;
         
         if ($beneficiary->patient) {
             $recentEncounters = Encounter::where('patient_id', $beneficiary->patient->id)
@@ -465,22 +454,11 @@ class ReceptionistController extends Controller
                 ->with(['facility', 'program'])
                 ->latest()
                 ->first();
-
-            // Check for pending approved referral to this facility
-            $pendingReferral = \App\Models\ServiceReferral::whereHas('encounter', fn($q) => $q->where('patient_id', $beneficiary->patient->id))
-                ->where('to_facility_id', $facilityId)
-                ->where('referral_type', 'patient')
-                ->where('status', 'pending')
-                ->where('approval_status', 'approved')
-                ->whereNull('service_item_id')
-                ->with('fromFacility')
-                ->latest()
-                ->first();
         }
         
         $programs = Program::all();
         
-        return view('receptionist.beneficiaries.show', compact('beneficiary', 'recentEncounters', 'ongoingEncounter', 'programs', 'pendingReferral'));
+        return view('receptionist.beneficiaries.show', compact('beneficiary', 'recentEncounters', 'ongoingEncounter', 'programs'));
     }
 
     /**
