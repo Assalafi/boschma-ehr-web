@@ -199,12 +199,12 @@
 
                         <!-- Weight -->
                         <div class="col-md-6">
-                            <label class="form-label fw-medium">Weight (kg)</label>
+                            <label class="form-label fw-medium">Weight (kg) <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text"><span class="material-symbols-outlined fs-6">monitor_weight</span></span>
                                 <input type="number" step="0.1" name="weight" id="weight" 
                                        class="form-control @error('weight') is-invalid @enderror" 
-                                       value="{{ old('weight') }}" placeholder="70.5">
+                                       value="{{ old('weight') }}" placeholder="70.5" required>
                                 <span class="input-group-text">kg</span>
                             </div>
                             @error('weight')
@@ -214,12 +214,12 @@
 
                         <!-- Height -->
                         <div class="col-md-6">
-                            <label class="form-label fw-medium">Height (cm)</label>
+                            <label class="form-label fw-medium">Height (cm) <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text"><span class="material-symbols-outlined fs-6">height</span></span>
                                 <input type="number" step="0.1" name="height" id="height" 
                                        class="form-control @error('height') is-invalid @enderror" 
-                                       value="{{ old('height') }}" placeholder="170">
+                                       value="{{ old('height') }}" placeholder="170" required>
                                 <span class="input-group-text">cm</span>
                             </div>
                             @error('height')

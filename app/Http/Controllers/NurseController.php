@@ -144,8 +144,8 @@ class NurseController extends Controller
             'pulse_rate' => 'required|integer|min:30|max:200',
             'respiration_rate' => 'required|integer|min:5|max:60',
             'spo2' => 'required|integer|min:50|max:100',
-            'weight' => 'nullable|numeric|min:1|max:500',
-            'height' => 'nullable|numeric|min:30|max:250',
+            'weight' => 'required|numeric|min:1|max:500',
+            'height' => 'required|numeric|min:30|max:250',
             'overall_priority' => 'required|in:Red,Yellow,Green',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -278,8 +278,8 @@ class NurseController extends Controller
             'pulse_rate' => 'required|integer|min:30|max:200',
             'respiration_rate' => 'required|integer|min:5|max:60',
             'spo2' => 'required|integer|min:50|max:100',
-            'weight' => 'nullable|numeric|min:1|max:500',
-            'height' => 'nullable|numeric|min:30|max:250',
+            'weight' => 'required|numeric|min:1|max:500',
+            'height' => 'required|numeric|min:30|max:250',
             'overall_priority' => 'required|in:Red,Yellow,Green',
             'notes' => 'nullable|string|max:1000',
         ]);
