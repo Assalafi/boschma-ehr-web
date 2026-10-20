@@ -142,6 +142,83 @@
 </div>
 @else
 <!-- Initial State -->
+@if(isset($pendingReferrals) && $pendingReferrals->isNotEmpty())
+<div class="card border-0 rounded-3 mb-4">
+    <div class="card-header bg-white border-bottom p-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0 fw-semibold text-dark d-flex align-items-center">
+                <span class="material-symbols-outlined text-warning align-middle me-2">swap_horiz</span>
+                Pending Referrals Awaiting Registration
+                <span class="badge bg-warning ms-2">{{ $pendingReferrals->count() }} pending</span>
+            </h5>
+            <small class="text-muted">Referred patients received at your facility waiting to be registered</small>
+        </div>
+        <a href="{{ route('receptionist.referrals') }}" class="btn btn-sm btn-outline-primary">
+            View All Referrals
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Patient</th>
+                        <th>BOSCHMA ID</th>
+                        <th>Referred From</th>
+                        <th>Reason</th>
+                        <th>Date</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($pendingReferrals as $referral)
+                    @php $p = $referral->encounter->patient ?? null; @endphp
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="wh-40 bg-info-subtle rounded-circle d-flex align-items-center justify-content-center me-2 overflow-hidden">
+                                    @if($p && $p->enrollee_photo)
+                                        <img src="{{ $p->enrollee_photo }}" class="rounded-circle wh-40 object-fit-cover" alt="">
+                                    @else
+                                        <span class="material-symbols-outlined text-info fs-6">person</span>
+                                    @endif
+                                </div>
+                                <div>
+                                    <span class="fw-medium">{{ $p->enrollee_name ?? 'N/A' }}</span>
+                                    <br><small class="text-muted">{{ $p->enrollee_gender ?? '' }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge bg-light text-dark fw-medium">{{ $p->enrollee_number ?? 'N/A' }}</span></td>
+                        <td><span class="fw-medium">{{ $referral->fromFacility->name ?? 'Unknown' }}</span></td>
+                        <td style="max-width:220px"><small class="text-muted">{{ Str::limit($referral->reason, 80) }}</small></td>
+                        <td>
+                            <span class="fw-medium">{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('M d, Y') : 'N/A' }}</span>
+                            <br><small class="text-muted">{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('H:i') : '' }}</small>
+                        </td>
+                        <td class="text-center">
+                            <button type="button" 
+                                class="btn btn-sm btn-primary d-inline-flex align-items-center"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#registerReferralModal"
+                                data-action="{{ route('receptionist.referrals.register', $referral) }}"
+                                data-name="{{ $p->enrollee_name ?? 'N/A' }}"
+                                data-boschma="{{ $p->enrollee_number ?? 'N/A' }}"
+                                data-facility="{{ $referral->fromFacility->name ?? 'Referring Facility' }}"
+                                data-reason="{{ $referral->reason ?? 'General Referral' }}"
+                                data-date="{{ $referral->created_at ? \Carbon\Carbon::parse($referral->created_at)->format('M d, Y H:i') : '' }}">
+                                <span class="material-symbols-outlined me-1 fs-6 align-middle">person_add</span> Register
+                            </button>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="card border-0 rounded-3">
     <div class="card-body p-5 text-center">
         <span class="material-symbols-outlined text-muted" style="font-size: 5rem;">person_search</span>

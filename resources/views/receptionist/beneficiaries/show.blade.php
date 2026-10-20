@@ -292,6 +292,32 @@
                 </h5>
             </div>
             <div class="card-body p-4">
+                @if(isset($pendingReferral) && $pendingReferral)
+                <div class="alert alert-warning border-0 bg-warning-subtle d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3 rounded-3">
+                    <div class="d-flex align-items-center">
+                        <div class="wh-40 bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0">
+                            <span class="material-symbols-outlined fs-5">swap_horiz</span>
+                        </div>
+                        <div>
+                            <strong class="text-dark d-block">Approved Referral Received</strong>
+                            <small class="text-muted">Referred from {{ $pendingReferral->fromFacility->name ?? 'another facility' }} &bull; Reason: {{ Str::limit($pendingReferral->reason, 60) }}</small>
+                        </div>
+                    </div>
+                    <button type="button" 
+                        class="btn btn-primary btn-sm d-inline-flex align-items-center"
+                        data-bs-toggle="modal" 
+                        data-bs-target="#registerReferralModal"
+                        data-action="{{ route('receptionist.referrals.register', $pendingReferral) }}"
+                        data-name="{{ $beneficiary->fullname }}"
+                        data-boschma="{{ $beneficiary->boschma_no }}"
+                        data-facility="{{ $pendingReferral->fromFacility->name ?? 'Referring Facility' }}"
+                        data-reason="{{ $pendingReferral->reason ?? 'General Referral' }}"
+                        data-date="{{ $pendingReferral->created_at ? \Carbon\Carbon::parse($pendingReferral->created_at)->format('M d, Y H:i') : '' }}">
+                        <span class="material-symbols-outlined me-1 fs-6 align-middle">person_add</span> Register Referred Patient
+                    </button>
+                </div>
+                @endif
+
                 @if($ongoingEncounter)
                 <div class="alert alert-danger d-flex align-items-start mb-4">
                     <span class="material-symbols-outlined me-2 mt-1">error</span>
@@ -351,4 +377,6 @@
         </div>
     </div>
 </div>
+
+@include('receptionist.referrals._register_modal')
 @endsection
