@@ -1,14 +1,35 @@
 
     @if($vitalSign)
     <div class="consult-card">
-        <div class="consult-card-header">
-            <span class="material-symbols-outlined" style="font-size:20px">monitor_heart</span>
-            Vital Signs (Triage)
+        <div class="consult-card-header d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:20px">monitor_heart</span>
+                Vital Signs (Triage)
+            </div>
+            @if($vitalSign->overall_priority)
+                @php
+                    $pBadge = match($vitalSign->overall_priority) {
+                        'Red' => 'bg-danger text-white',
+                        'Yellow' => 'bg-warning text-dark',
+                        default => 'bg-success text-white'
+                    };
+                @endphp
+                <span class="badge {{ $pBadge }}">{{ $vitalSign->overall_priority }} Priority</span>
+            @endif
         </div>
         <div class="p-3">
             <div class="row g-2 text-center">
-                @foreach([['Temp','temperature','°C'],['BP','blood_pressure_systolic','/'.($vitalSign->blood_pressure_diastolic??'?').' mmHg'],['Pulse','pulse_rate','bpm'],['SpO2','spo2','%'],['RR','respiration_rate','/min'],['Weight','weight','kg']] as [$lbl,$fld,$unit])
-                <div class="col-4 col-md-2">
+                @foreach([
+                    ['Temp','temperature','°C'],
+                    ['BP','blood_pressure_systolic','/'.($vitalSign->blood_pressure_diastolic??'?').' mmHg'],
+                    ['Pulse','pulse_rate','bpm'],
+                    ['SpO2','spo2','%'],
+                    ['RR','respiration_rate','/min'],
+                    ['Weight','weight','kg'],
+                    ['Height','height','cm'],
+                    ['BMI','bmi','kg/m²']
+                ] as [$lbl,$fld,$unit])
+                <div class="col-6 col-md-3">
                     <div class="bg-light rounded-3 p-2">
                         <div class="text-muted" style="font-size:11px">{{ $lbl }}</div>
                         <div class="fw-bold" style="color:#016634">{{ $vitalSign->$fld ?? '-' }}</div>
@@ -17,6 +38,19 @@
                 </div>
                 @endforeach
             </div>
+
+            @if(!empty($vitalSign->notes))
+            <div class="mt-3 p-3 rounded-3" style="background:#f8fafc; border-left:4px solid #016634;">
+                <div class="d-flex align-items-center gap-1 mb-1">
+                    <span class="material-symbols-outlined" style="font-size:18px; color:#016634">clinical_notes</span>
+                    <strong style="font-size:13px; color:#016634;">Clinical Notes from Triage:</strong>
+                    @if($vitalSign->takenBy)
+                        <small class="text-muted ms-1">(Recorded by: {{ $vitalSign->takenBy->name }})</small>
+                    @endif
+                </div>
+                <div class="text-dark ps-4" style="font-size:13.5px; white-space:pre-wrap; line-height:1.5;">{{ $vitalSign->notes }}</div>
+            </div>
+            @endif
         </div>
     </div>
     @endif

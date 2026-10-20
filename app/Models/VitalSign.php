@@ -20,7 +20,8 @@ class VitalSign extends Model
         'spo2',
         'weight',
         'height',
-        'overall_priority'
+        'overall_priority',
+        'notes',
     ];
 
     protected $keyType = 'string';

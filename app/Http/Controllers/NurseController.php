@@ -163,6 +163,7 @@ class NurseController extends Controller
             'weight' => $request->weight,
             'height' => $request->height,
             'overall_priority' => $request->overall_priority,
+            'notes' => $request->notes,
         ]);
 
         // Update encounter status to Triaged only if no active consultation exists
@@ -301,6 +302,7 @@ class NurseController extends Controller
             'weight' => $request->weight,
             'height' => $request->height,
             'overall_priority' => $request->overall_priority,
+            'notes' => $request->notes,
         ]);
 
         // Log the update action
