@@ -116,6 +116,26 @@
     </div>
 </div>
 
+@if(isset($rejectedReferral) && $rejectedReferral)
+<div class="alert alert-danger d-flex align-items-start gap-3 mt-3 mb-0 rounded-3 shadow-sm border border-danger-subtle bg-danger-subtle text-danger-emphasis">
+    <span class="material-symbols-outlined text-danger fs-3 flex-shrink-0 mt-1">cancel</span>
+    <div class="flex-grow-1">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+            <h6 class="fw-bold mb-0 text-danger">Patient Referral Was Rejected by {{ $rejectedReferralFacility->name ?? 'Receiving Facility' }}</h6>
+            @if($rejectedReferral->rejected_at)
+                <small class="text-muted">Rejected on {{ \Carbon\Carbon::parse($rejectedReferral->rejected_at)->format('d M Y H:i') }}</small>
+            @endif
+        </div>
+        <div class="bg-white p-2 rounded border border-danger-subtle text-dark small mb-2 fw-medium">
+            <strong class="text-danger">Reason for Rejection:</strong> {{ $rejectedReferral->rejection_reason ?: 'No specific reason provided' }}
+        </div>
+        <div class="small text-secondary">
+            Consultation has been resumed. You can review clinical assessments, modify investigations/treatments, or refer the patient to an alternate facility.
+        </div>
+    </div>
+</div>
+@endif
+
 <!-- Form -->
 <form action="{{ route('doctor.consultation.store', $encounter) }}" method="POST" id="consultationForm">
 @csrf

@@ -162,7 +162,25 @@ class DoctorController extends Controller
                                     });
                                 })
                                 ->count(),
-            'referred'         => (clone $base)->where('status', Encounter::STATUS_REFERRED)->count(),
+            'referred'         => (clone $base)->where('status', Encounter::STATUS_REFERRED)
+                                    ->whereDoesntHave('serviceReferrals', function($q) {
+                                        $q->where('referral_type', 'patient')
+                                          ->where(function($sq) {
+                                              $sq->where('status', 'rejected')->orWhere('approval_status', 'rejected');
+                                          });
+                                    })
+                                    ->count(),
+            'rejected'         => (clone $base)->where(function($q) {
+                                    $q->whereHas('serviceReferrals', function($sq) {
+                                        $sq->where('referral_type', 'patient')
+                                           ->where(function($ssq) {
+                                               $ssq->where('status', 'rejected')
+                                                   ->orWhere('approval_status', 'rejected');
+                                           });
+                                    })
+                                    ->orWhere('status', 'rejected')
+                                    ->orWhere('outcome', 'Rejected');
+                                })->count(),
             'followUp'         => (clone $base)->where('status', Encounter::STATUS_FOLLOW_UP)->count(),
             'completedToday'   => (clone $base)->whereNotIn('status', [Encounter::STATUS_REFERRED, Encounter::STATUS_FOLLOW_UP, Encounter::STATUS_ADMITTED])->whereHas('consultations', fn($q) => $q->where('status', ClinicalConsultation::STATUS_COMPLETED)->whereDate('updated_at', today()))->count(),
         ];
@@ -245,10 +263,31 @@ class DoctorController extends Controller
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._admitted_table'; break;
             case 'referred':
-                $query->where('status', Encounter::STATUS_REFERRED);
+                $query->where('status', Encounter::STATUS_REFERRED)
+                    ->whereDoesntHave('serviceReferrals', function($q) {
+                        $q->where('referral_type', 'patient')
+                          ->where(function($sq) {
+                              $sq->where('status', 'rejected')->orWhere('approval_status', 'rejected');
+                          });
+                    });
                 if ($request->filled('program')) $query->where('program_id', $request->program);
                 $query->orderByDesc('updated_at');
                 $partial = 'doctor.queue._referred_table'; break;
+            case 'rejected':
+                $query->where(function($q) {
+                    $q->whereHas('serviceReferrals', function($sq) {
+                        $sq->where('referral_type', 'patient')
+                           ->where(function($ssq) {
+                               $ssq->where('status', 'rejected')
+                                   ->orWhere('approval_status', 'rejected');
+                           });
+                    })
+                    ->orWhere('status', 'rejected')
+                    ->orWhere('outcome', 'Rejected');
+                });
+                if ($request->filled('program')) $query->where('program_id', $request->program);
+                $query->orderByDesc('updated_at');
+                $partial = 'doctor.queue._rejected_table'; break;
             case 'followUp':
                 $query->where('status', Encounter::STATUS_FOLLOW_UP);
                 if ($request->filled('program')) $query->where('program_id', $request->program);
@@ -292,9 +331,34 @@ class DoctorController extends Controller
             ClinicalConsultation::STATUS_DRAFT, 
             ClinicalConsultation::STATUS_PENDING
         ])) {
-            return redirect()->route('doctor.consultation.show', $existingConsultation)
-                ->with('info', 'Consultation already completed for this encounter.');
+            // Check if this encounter has a rejected referral or rejected status; if so, permit doctor to continue/edit details
+            $hasRejectedReferral = DB::table('service_referrals')
+                ->where('encounter_id', $encounter->id)
+                ->where('referral_type', 'patient')
+                ->where(function($q) {
+                    $q->where('status', 'rejected')->orWhere('approval_status', 'rejected');
+                })
+                ->exists();
+
+            if ($hasRejectedReferral || $encounter->status === 'rejected' || $encounter->outcome === 'Rejected') {
+                $existingConsultation->update(['status' => ClinicalConsultation::STATUS_IN_PROGRESS]);
+                $encounter->update(['status' => Encounter::STATUS_IN_CONSULTATION, 'outcome' => null]);
+            } else {
+                return redirect()->route('doctor.consultation.show', $existingConsultation)
+                    ->with('info', 'Consultation already completed for this encounter.');
+            }
         }
+        
+        // Find rejected referral details if any to inform the doctor
+        $rejectedReferral = DB::table('service_referrals')
+            ->where('encounter_id', $encounter->id)
+            ->where('referral_type', 'patient')
+            ->where(function($q) {
+                $q->where('status', 'rejected')->orWhere('approval_status', 'rejected');
+            })
+            ->orderByDesc('created_at')
+            ->first();
+        $rejectedReferralFacility = $rejectedReferral ? Facility::find($rejectedReferral->to_facility_id) : null;
         
         // Get patient history (previous encounters)
         $patientHistory = [];
@@ -389,7 +453,7 @@ class DoctorController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('doctor.consultation.create', compact('encounter', 'patientHistory', 'icdCodes', 'drugs', 'savedData', 'serviceCategories', 'orderedServiceNames', 'facilities', 'wards', 'step'));
+        return view('doctor.consultation.create', compact('encounter', 'patientHistory', 'icdCodes', 'drugs', 'savedData', 'serviceCategories', 'orderedServiceNames', 'facilities', 'wards', 'step', 'rejectedReferral', 'rejectedReferralFacility'));
     }
 
 
@@ -680,20 +744,23 @@ class DoctorController extends Controller
                 ->whereNull('service_item_id')
                 ->first();
 
-            if ($existing && $existing->status !== 'pending') {
+            if ($existing && !in_array($existing->status, ['pending', 'rejected', 'cancelled'])) {
                 return response()->json(['error' => 'A referral already exists and is ' . $existing->status . '.'], 422);
             }
 
             $data = [
-                'encounter_id'    => $encounter->id,
-                'from_facility_id'=> $facilityId,
-                'to_facility_id'  => $request->to_facility_id,
-                'referral_type'   => 'patient',
-                'service_item_id' => null,
-                'reason'          => $request->reason . ($request->clinical_findings ? "\n\nClinical Findings: " . $request->clinical_findings : ''),
-                'status'          => 'pending',
-                'approval_status' => 'pending',
-                'updated_at'      => now(),
+                'encounter_id'     => $encounter->id,
+                'from_facility_id' => $facilityId,
+                'to_facility_id'   => $request->to_facility_id,
+                'referral_type'    => 'patient',
+                'service_item_id'  => null,
+                'reason'           => $request->reason . ($request->clinical_findings ? "\n\nClinical Findings: " . $request->clinical_findings : ''),
+                'status'           => 'pending',
+                'approval_status'  => 'pending',
+                'rejection_reason' => null,
+                'rejected_by'      => null,
+                'rejected_at'      => null,
+                'updated_at'       => now(),
             ];
 
             if ($existing) {
@@ -1724,6 +1791,75 @@ class DoctorController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to recall referral: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Resume a rejected referral encounter so the doctor can continue/edit consultation details.
+     */
+    public function resumeRejectedReferral(Request $request, Encounter $encounter)
+    {
+        $facilityId = Auth::user()->facility_id;
+        if ((int) $encounter->facility_id !== (int) $facilityId) {
+            abort(403, 'Encounter not found for your facility.');
+        }
+
+        // Find the rejected referral if exists
+        $referral = DB::table('service_referrals')
+            ->where('encounter_id', $encounter->id)
+            ->where('referral_type', 'patient')
+            ->whereNull('service_item_id')
+            ->where(function($q) {
+                $q->where('status', 'rejected')->orWhere('approval_status', 'rejected');
+            })
+            ->first();
+
+        // Check if a claim has already been raised for this encounter
+        if ($encounter->facilityClaim) {
+            return back()->with('error', 'Cannot resume: A claim has already been raised for this encounter.');
+        }
+
+        DB::beginTransaction();
+        try {
+            // Update encounter status to IN_CONSULTATION and reset outcome
+            $encounter->update([
+                'status'  => Encounter::STATUS_IN_CONSULTATION,
+                'outcome' => null,
+            ]);
+
+            // Re-open the consultation so the doctor can edit/continue
+            $consultation = $encounter->consultations->first();
+            if ($consultation) {
+                $consultation->update([
+                    'status' => ClinicalConsultation::STATUS_IN_PROGRESS,
+                ]);
+            } else {
+                ClinicalConsultation::create([
+                    'encounter_id' => $encounter->id,
+                    'doctor_id'    => Auth::id(),
+                    'status'       => ClinicalConsultation::STATUS_IN_PROGRESS,
+                ]);
+            }
+
+            // Log the action
+            EncounterAction::create([
+                'encounter_id' => $encounter->id,
+                'user_id'      => Auth::id(),
+                'action_type'  => ActionType::CONSULTATION,
+                'description'  => 'Rejected referral resumed for consultation continuation by Dr. ' . Auth::user()->name . ($referral && $referral->rejection_reason ? ' (Rejection Reason: ' . Str::limit($referral->rejection_reason, 100) . ')' : ''),
+                'action_time'  => now(),
+            ]);
+
+            DB::commit();
+
+            $msg = 'Referral was rejected' . ($referral && $referral->rejection_reason ? ': "' . $referral->rejection_reason . '"' : '') . '. Consultation resumed. You can now edit assessment, diagnoses, treatments, or re-refer.';
+
+            return redirect()->route('doctor.consultation.start', $encounter)
+                ->with('warning', $msg);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to resume consultation: ' . $e->getMessage());
         }
     }
 

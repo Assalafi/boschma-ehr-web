@@ -86,6 +86,10 @@
       <span class="material-symbols-outlined" style="font-size:16px">arrow_forward</span> Referred
       <span class="tab-count" data-count="referred" style="background:#fef3e8;color:#e67e22">{{ $counts['referred'] }}</span>
     </button>
+    <button class="queue-tab" data-tab="rejected" type="button">
+      <span class="material-symbols-outlined" style="font-size:16px">cancel</span> Rejected
+      <span class="tab-count" data-count="rejected" style="background:#fee2e2;color:#b91c1c">{{ $counts['rejected'] }}</span>
+    </button>
     <button class="queue-tab" data-tab="followUp" type="button">
       <span class="material-symbols-outlined" style="font-size:16px">event</span> Follow-up
       <span class="tab-count" data-count="followUp" style="background:#fef3c7;color:#d97706">{{ $counts['followUp'] }}</span>
@@ -162,6 +166,17 @@
     <select class="tab-filter" data-filter="program"><option value="">All Programs</option>@foreach($programs as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
     <select class="tab-filter" data-filter="per_page"><option value="15">15 / page</option><option value="25">25</option><option value="50">50</option></select>
     <span class="tab-info" data-info="referred"></span>
+  </div>
+
+  {{-- REJECTED filters --}}
+  <div class="tab-toolbar" data-toolbar="rejected" style="display:none">
+    <div class="tab-search-wrap">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" class="tab-search-input" data-filter="search" placeholder="Search patient, ID, or rejection reason...">
+    </div>
+    <select class="tab-filter" data-filter="program"><option value="">All Programs</option>@foreach($programs as $id=>$name)<option value="{{ $id }}">{{ $name }}</option>@endforeach</select>
+    <select class="tab-filter" data-filter="per_page"><option value="15">15 / page</option><option value="25">25</option><option value="50">50</option></select>
+    <span class="tab-info" data-info="rejected"></span>
   </div>
 
   {{-- FOLLOW-UP filters --}}

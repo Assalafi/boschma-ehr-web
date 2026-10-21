@@ -156,7 +156,7 @@ class ReceptionistController extends Controller
             $referralsByPatientId = $activeReferrals->keyBy('patient_id');
             $referralsByEnrolleeNo = $activeReferrals->keyBy('enrollee_number');
             $referredPatientIds = $activeReferrals->pluck('patient_id')->filter()->unique();
-            $referredEnrolleeNos = $activeReferrals->pluck('enrollee_number')->filter()->unique();
+            $referredEnrolleeNos = $activeReferrals->pluck('enrollee_number')->filter()->unique()->values();
 
             $getReferral = function($item) use ($referralsByPatientId, $referralsByEnrolleeNo) {
                 if (!empty($item->patient) && $referralsByPatientId->has($item->patient->id)) {
@@ -265,13 +265,10 @@ class ReceptionistController extends Controller
                 });
 
             // Search referred patients (from other facilities with pending referrals TO this facility)
-            if ($referredPatientIds->isNotEmpty() || $referredEnrolleeNos->isNotEmpty()) {
+            if ($referredEnrolleeNos->isNotEmpty()) {
                 // Search beneficiaries from other facilities that have been referred here
-                $referredBeneficiaries = Beneficiary::where('facility_id', '!=', $facilityId)
-                    ->where(function($q) use ($referredPatientIds, $referredEnrolleeNos) {
-                        $q->whereHas('patient', fn($p) => $p->whereIn('id', $referredPatientIds))
-                          ->orWhereIn('boschma_no', $referredEnrolleeNos);
-                    })
+                $referredBeneficiaries = Beneficiary::whereIn('boschma_no', $referredEnrolleeNos)
+                    ->where('facility_id', '!=', $facilityId)
                     ->where(function($q) use ($query) {
                         $q->where('fullname', 'like', "%{$query}%")
                           ->orWhere('boschma_no', 'like', "%{$query}%")
@@ -305,11 +302,8 @@ class ReceptionistController extends Controller
                 $beneficiaries = $beneficiaries->concat($referredBeneficiaries);
 
                 // Search spouses from other facilities that have been referred here
-                $referredSpouses = Spouse::where('facility_id', '!=', $facilityId)
-                    ->where(function($q) use ($referredPatientIds, $referredEnrolleeNos) {
-                        $q->whereHas('patient', fn($p) => $p->whereIn('id', $referredPatientIds))
-                          ->orWhereIn('boschma_no', $referredEnrolleeNos);
-                    })
+                $referredSpouses = Spouse::whereIn('boschma_no', $referredEnrolleeNos)
+                    ->where('facility_id', '!=', $facilityId)
                     ->where(function($q) use ($query) {
                         $q->where('name', 'like', "%{$query}%")
                           ->orWhere('boschma_no', 'like', "%{$query}%")
@@ -343,11 +337,8 @@ class ReceptionistController extends Controller
                 $spouses = $spouses->concat($referredSpouses);
 
                 // Search children from other facilities that have been referred here
-                $referredChildren = Child::where('facility_id', '!=', $facilityId)
-                    ->where(function($q) use ($referredPatientIds, $referredEnrolleeNos) {
-                        $q->whereHas('patient', fn($p) => $p->whereIn('id', $referredPatientIds))
-                          ->orWhereIn('boschma_no', $referredEnrolleeNos);
-                    })
+                $referredChildren = Child::whereIn('boschma_no', $referredEnrolleeNos)
+                    ->where('facility_id', '!=', $facilityId)
                     ->where(function($q) use ($query) {
                         $q->where('name', 'like', "%{$query}%")
                           ->orWhere('boschma_no', 'like', "%{$query}%")
