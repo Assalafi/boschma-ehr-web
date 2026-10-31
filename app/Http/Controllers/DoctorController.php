@@ -464,37 +464,108 @@ class DoctorController extends Controller
     {
         $q = trim($request->input('q', ''));
         $exclude = (array) $request->input('exclude', []);
-        $facilityId = Auth::user()->facility_id;
+        $facilityId = $request->input('facility_id') ?: Auth::user()?->facility_id;
         $programId = $request->input('program_id');
 
-        if (strlen($q) < 4) {
+        // Allow 2 or more characters, or empty to list top in-stock drugs for the facility
+        if (strlen($q) > 0 && strlen($q) < 2) {
             return response()->json([]);
         }
 
-        $drugs = Drug::where(function($query) use ($q) {
+        $query = Drug::whereNotIn('id', $exclude);
+
+        if (!empty($q)) {
+            $query->where(function($query) use ($q) {
                 $query->where('name', 'LIKE', "%{$q}%")
                       ->orWhere('strength', 'LIKE', "%{$q}%")
                       ->orWhere('dosage_form', 'LIKE', "%{$q}%")
                       ->orWhere('description', 'LIKE', "%{$q}%");
-            })
-            ->whereNotIn('id', $exclude)
-            ->orderBy('name')
-            ->limit(25)
-            ->get(['id','name','dosage_form','strength','unit','unit_price','description','facility_id'])
+            });
+        }
+
+        // Order relevance:
+        // 1. Drugs with available stock in the facility first
+        // 2. Exact or prefix match on name (name LIKE 'q%')
+        // 3. Name contains q (name LIKE '%q%')
+        // 4. Alphabetical by name
+        if ($facilityId) {
+            $query->select('drugs.*')
+                ->selectRaw('(
+                    SELECT COALESCE(SUM(quantity_remaining), 0)
+                    FROM drug_stocks
+                    WHERE drug_stocks.drug_id = drugs.id
+                      AND drug_stocks.facility_id = ?
+                      AND drug_stocks.status = "approved"
+                      AND drug_stocks.quantity_remaining > 0
+                ) as available_facility_stock', [$facilityId]);
+
+            if (!empty($q)) {
+                $query->orderByRaw('available_facility_stock > 0 DESC')
+                      ->orderByRaw('CASE WHEN drugs.name LIKE ? THEN 1 WHEN drugs.name LIKE ? THEN 2 ELSE 3 END', ["{$q}%", "%{$q}%"])
+                      ->orderBy('drugs.name');
+            } else {
+                // When q is empty, show in-stock drugs for this facility
+                $query->whereRaw('(
+                    SELECT COALESCE(SUM(quantity_remaining), 0)
+                    FROM drug_stocks
+                    WHERE drug_stocks.drug_id = drugs.id
+                      AND drug_stocks.facility_id = ?
+                      AND drug_stocks.status = "approved"
+                      AND drug_stocks.quantity_remaining > 0
+                ) > 0', [$facilityId])
+                ->orderBy('drugs.name');
+            }
+        } else {
+            if (!empty($q)) {
+                $query->orderByRaw('CASE WHEN name LIKE ? THEN 1 WHEN name LIKE ? THEN 2 ELSE 3 END', ["{$q}%", "%{$q}%"])
+                      ->orderBy('name');
+            } else {
+                $query->orderBy('name');
+            }
+        }
+
+        $drugs = $query->limit(40)->get()
             ->map(function($drug) use ($facilityId, $programId) {
-                $stock = $drug->totalStockInFacility($facilityId, $programId);
-                $status = $stock === 0 ? 'out' : ($stock < 10 ? 'low' : 'in');
+                $facilityStock = 0;
+                $programStock = 0;
+
+                if ($facilityId) {
+                    $facilityStock = isset($drug->available_facility_stock)
+                        ? (int) $drug->available_facility_stock
+                        : (int) $drug->stocks()
+                            ->where('facility_id', $facilityId)
+                            ->where('status', 'approved')
+                            ->where('quantity_remaining', '>', 0)
+                            ->sum('quantity_remaining');
+
+                    if ($programId) {
+                        $programStock = (int) $drug->stocks()
+                            ->where('facility_id', $facilityId)
+                            ->where(fn($q) => $q->where('program_id', $programId)->orWhereNull('program_id'))
+                            ->where('status', 'approved')
+                            ->where('quantity_remaining', '>', 0)
+                            ->sum('quantity_remaining');
+                    } else {
+                        $programStock = $facilityStock;
+                    }
+                }
+
+                $effectiveStock = ($programStock > 0) ? $programStock : $facilityStock;
+                $status = $effectiveStock === 0 ? 'out' : ($effectiveStock < 10 ? 'low' : 'in');
+
                 return [
-                    'id'          => $drug->id,
-                    'name'        => $drug->name,
-                    'dosage_form' => $drug->dosage_form ?? '',
-                    'strength'    => $drug->strength ?? '',
-                    'unit'        => $drug->unit ?? '',
-                    'unit_price'  => (float) ($drug->unit_price ?? 0),
-                    'description' => $drug->description ?? '',
-                    'stock'       => $stock,
-                    'stock_status'=> $status,
-                    'facility_id' => $drug->facility_id,
+                    'id'             => $drug->id,
+                    'name'           => $drug->name,
+                    'dosage_form'    => $drug->dosage_form ?? '',
+                    'strength'       => $drug->strength ?? '',
+                    'unit'           => $drug->unit ?? '',
+                    'unit_price'     => (float) ($drug->unit_price ?? 0),
+                    'description'    => $drug->description ?? '',
+                    'stock'          => $effectiveStock,
+                    'program_stock'  => $programStock,
+                    'facility_stock' => $facilityStock,
+                    'stock_status'   => $status,
+                    'facility_id'    => $drug->facility_id,
                 ];
             });
 

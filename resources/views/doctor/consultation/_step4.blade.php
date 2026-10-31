@@ -39,14 +39,21 @@
                 </button>
             </div>
             <div class="p-3">
-                <!-- Search bar -->
+                <!-- Facility Stock Info & Search bar -->
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <span class="material-symbols-outlined" style="font-size:16px;color:#016634">local_pharmacy</span>
+                        <span>Facility Inventory: <strong class="text-dark">{{ $encounter->facility->name ?? 'This Facility' }}</strong></span>
+                    </div>
+                    <span class="badge" style="background:#e8f0ee;color:#016634;font-size:11px">Focus search to see in-stock items</span>
+                </div>
                 <div class="position-relative mb-3" style="z-index:1050">
                     <div class="input-group shadow-sm" style="border-radius:10px;overflow:hidden">
                         <span class="input-group-text border-0 bg-light" style="padding-left:14px">
                             <span class="material-symbols-outlined" style="font-size:19px;color:#016634">search</span>
                         </span>
                         <input type="text" id="drugSearchInput" class="form-control border-0 bg-light"
-                            placeholder="Type at least 4 letters to search by name, form, or strength…"
+                            placeholder="Type drug name, form, strength (e.g. Paracetamol, Artesunate)..."
                             autocomplete="off">
                         <span class="input-group-text border-0 bg-light" id="drugSearchSpinner" style="display:none">
                             <span class="spinner-border spinner-border-sm" style="width:.85rem;height:.85rem;color:#016634"></span>
@@ -128,6 +135,7 @@ const _proceduresCsrf = document.querySelector('meta[name="csrf-token"]')?.conte
 const _step4Csrf        = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
 const _drugSearchUrl    = '{{ route("doctor.consultation.drugs.search") }}';
 const _encounterProgramId = '{{ $encounter->program_id ?? '' }}';
+const _encounterFacilityId = '{{ $encounter->facility_id ?? Auth::user()->facility_id ?? '' }}';
 
 // ── Drug Search & Prescription List ──────────────────────────────────────────
 
@@ -160,8 +168,9 @@ function _renderDrugResults(drugs) {
         box.innerHTML = `<div class="p-4 text-muted text-center">
             <span class="material-symbols-outlined" style="font-size:32px;color:#d0e8e0">search_off</span>
             <div class="mt-2" style="font-size:14px">No drugs found</div>
-            <div class="small">Try a different search term</div>
+            <div class="small">Try a different search term or check facility inventory</div>
         </div>`;
+        _drugDropdownPosition();
         box.style.display = '';
         return;
     }
@@ -170,14 +179,16 @@ function _renderDrugResults(drugs) {
         const details = [d.dosage_form, d.strength, d.unit].filter(Boolean).join(' · ');
         const price   = d.unit_price > 0 ? `₦${d.unit_price.toFixed(2)}/unit` : '';
         const isOutOfStock = d.stock_status === 'out';
-        const isDisabled = alreadyAdded || isOutOfStock;
         return `<div class="d-flex align-items-start justify-content-between gap-3 px-4 py-3 border-bottom drug-result-row"
-                    style="cursor:${isDisabled ? 'default' : 'pointer'};background:${alreadyAdded ? '#f8fffe' : (isOutOfStock ? '#f8f9fa' : '#fff')};transition:background-color 0.2s;opacity:${isOutOfStock ? '0.7' : '1'}"
-                    onmouseover="this.style.backgroundColor='${isDisabled ? (alreadyAdded ? '#f0f9f6' : '#f8f9fa') : '#f8fffe'}'"
-                    onmouseout="this.style.backgroundColor='${alreadyAdded ? '#f8fffe' : (isOutOfStock ? '#f8f9fa' : '#fff')}'"
-                    ${isDisabled ? '' : `onclick="_addDrug(${JSON.stringify(d).replace(/"/g,'&quot;')})"`}>
+                    style="cursor:${alreadyAdded ? 'default' : 'pointer'};background:${alreadyAdded ? '#f8fffe' : (isOutOfStock ? '#fffdfa' : '#fff')};transition:background-color 0.2s"
+                    onmouseover="this.style.backgroundColor='${alreadyAdded ? '#f0f9f6' : '#f8fffe'}'"
+                    onmouseout="this.style.backgroundColor='${alreadyAdded ? '#f8fffe' : (isOutOfStock ? '#fffdfa' : '#fff')}'"
+                    ${alreadyAdded ? '' : `onclick="_addDrug(${JSON.stringify(d).replace(/"/g,'&quot;')})"`}>
             <div style="min-width:0;flex:1">
-                <div class="fw-semibold" style="font-size:14px;color:#0a3d35;line-height:1.3">${d.name}</div>
+                <div class="fw-semibold d-flex align-items-center gap-2" style="font-size:14px;color:#0a3d35;line-height:1.3">
+                    <span>${d.name}</span>
+                    ${d.facility_stock > 0 && d.program_stock === 0 ? `<span class="badge bg-light text-secondary border" style="font-size:10px" title="Available in general facility inventory">Facility Stock</span>` : ''}
+                </div>
                 <div class="text-muted" style="font-size:12px;line-height:1.4">${details}${price ? ' · <span style=\'color:#016634\'>' + price + '</span>' : ''}</div>
             </div>
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
@@ -185,9 +196,10 @@ function _renderDrugResults(drugs) {
                 ${alreadyAdded
                     ? `<span class="badge bg-secondary" style="font-size:11px">Added</span>`
                     : isOutOfStock
-                        ? `<button type="button" class="btn btn-sm px-3 py-2 rounded-pill" disabled
-                              style="background:#e9ecef;color:#6c757d;font-size:12px;border:none;cursor:not-allowed">
-                              <span class="material-symbols-outlined align-middle" style="font-size:14px">block</span> Out of Stock
+                        ? `<button type="button" class="btn btn-sm px-3 py-1 rounded-pill"
+                              style="background:#fff3cd;color:#856404;font-size:12px;border:1px solid #ffeeba"
+                              onclick="event.stopPropagation();_addDrug(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+                              <span class="material-symbols-outlined align-middle" style="font-size:13px">add</span> Prescribe (Out of stock)
                            </button>`
                         : `<button type="button" class="btn btn-sm px-3 py-2 rounded-pill"
                               style="background:#e8f0ee;color:#016634;font-size:12px;border:none"
@@ -198,16 +210,15 @@ function _renderDrugResults(drugs) {
             </div>
         </div>`;
     }).join('');
+    _drugDropdownPosition();
     box.style.display = '';
 }
 
 function _addDrug(drug) {
     if (_selectedDrugs.has(drug.id)) return;
     
-    // Prevent adding out-of-stock drugs
     if (drug.stock_status === 'out') {
-        _showToast('danger', 'Cannot add out-of-stock medication: ' + drug.name);
-        return;
+        _showToast('warning', drug.name + ' is currently out of stock in this facility. Added for external prescription.');
     }
     
     drug.dosage       = '';
@@ -219,7 +230,7 @@ function _addDrug(drug) {
     _renderPrescriptionList();
     // Refresh results to show "Added" badge
     const input = document.getElementById('drugSearchInput');
-    if (input.value.length >= 4) _fetchDrugs(input.value);
+    _fetchDrugs(input.value.trim());
 }
 
 function _removeDrug(drugId) {
@@ -227,7 +238,7 @@ function _removeDrug(drugId) {
     _renderPrescriptionList();
     // Refresh results
     const input = document.getElementById('drugSearchInput');
-    if (input.value.length >= 4) _fetchDrugs(input.value);
+    _fetchDrugs(input.value.trim());
 }
 
 
@@ -325,37 +336,38 @@ function _renderPrescriptionList() {
 async function _fetchDrugs(q) {
     const spinner = document.getElementById('drugSearchSpinner');
     const box = document.getElementById('drugSearchResults');
-    spinner.style.display = '';
+    if (spinner) spinner.style.display = '';
     
-    // Show loading state
-    box.innerHTML = `<div class="p-4 text-muted text-center">
-        <span class="spinner-border spinner-border-sm" style="width:1.5rem;height:1.5rem;color:#016634"></span>
-        <div class="mt-2" style="font-size:14px">Searching drugs...</div>
-    </div>`;
-    _drugDropdownPosition();
-    box.style.display = '';
+    // Show loading state if box is not already showing
+    if (!box.innerHTML || box.style.display === 'none') {
+        box.innerHTML = `<div class="p-4 text-muted text-center">
+            <span class="spinner-border spinner-border-sm" style="width:1.5rem;height:1.5rem;color:#016634"></span>
+            <div class="mt-2" style="font-size:14px">${q ? 'Searching drugs...' : 'Loading in-stock drugs...'}</div>
+        </div>`;
+        _drugDropdownPosition();
+        box.style.display = '';
+    }
     
     const excludeIds = [..._selectedDrugs.keys()];
-    const params = new URLSearchParams({ q });
+    const params = new URLSearchParams();
+    if (q) params.append('q', q);
     if (_encounterProgramId) params.append('program_id', _encounterProgramId);
+    if (_encounterFacilityId) params.append('facility_id', _encounterFacilityId);
     excludeIds.forEach(id => params.append('exclude[]', id));
-    
-    console.log('Fetching drugs:', { url: `${_drugSearchUrl}?${params}`, q, excludeIds });
     
     try {
         const res = await fetch(`${_drugSearchUrl}?${params}`, {
             headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': _step4Csrf }
         });
-        console.log('Search response status:', res.status);
         const data = await res.json();
-        console.log('Search response data:', data);
         _renderDrugResults(data);
     } catch(e) {
         console.error('Search error:', e);
         box.innerHTML = `<div class="p-3 text-danger small">Search failed. Please try again. (${e.message})</div>`;
+        _drugDropdownPosition();
         box.style.display = '';
     } finally {
-        spinner.style.display = 'none';
+        if (spinner) spinner.style.display = 'none';
     }
 }
 
@@ -382,9 +394,9 @@ document.addEventListener('DOMContentLoaded', function() {
     input.addEventListener('input', function() {
         clearTimeout(_drugSearchTimer);
         const q = this.value.trim();
-        if (q.length < 4) { box.style.display = 'none'; return; }
+        if (q.length === 1) { box.style.display = 'none'; return; }
         _drugDropdownPosition();
-        _drugSearchTimer = setTimeout(() => _fetchDrugs(q), 300);
+        _drugSearchTimer = setTimeout(() => _fetchDrugs(q), 250);
     });
 
     document.addEventListener('click', function(e) {
@@ -394,9 +406,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     input.addEventListener('focus', function() {
-        if (this.value.trim().length >= 4 && box.innerHTML) {
-            _drugDropdownPosition();
-            box.style.display = '';
+        const q = this.value.trim();
+        _drugDropdownPosition();
+        if (q.length === 0 || q.length >= 2) {
+            _fetchDrugs(q);
         }
     });
 

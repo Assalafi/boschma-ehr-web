@@ -75,12 +75,23 @@ class Drug extends Model
             $facilityId = \Illuminate\Support\Facades\Auth::user()->facility_id ?? null;
         }
         
-        return $this->stocks()
+        $stock = $this->stocks()
             ->when($facilityId, fn($q) => $q->where('facility_id', $facilityId))
-            ->when($programId, fn($q) => $q->where('program_id', $programId))
+            ->when($programId, fn($q) => $q->where(fn($sub) => $sub->where('program_id', $programId)->orWhereNull('program_id')))
             ->where('status', 'approved')
             ->where('quantity_remaining', '>', 0)
             ->sum('quantity_remaining');
+
+        if ($stock == 0 && $facilityId) {
+            // Check if there is general approved stock in this facility
+            $stock = $this->stocks()
+                ->where('facility_id', $facilityId)
+                ->where('status', 'approved')
+                ->where('quantity_remaining', '>', 0)
+                ->sum('quantity_remaining');
+        }
+
+        return (int) $stock;
     }
 
     /**
@@ -103,13 +114,26 @@ class Drug extends Model
         $remainingToDeduct = $quantity;
         $totalDeducted = 0;
 
+        // First pass: try matching program or general null program
         $stocks = $this->stocks()
             ->where('facility_id', $facilityId)
-            ->when($programId, fn($q) => $q->where('program_id', $programId))
+            ->when($programId, fn($q) => $q->where(fn($sub) => $sub->where('program_id', $programId)->orWhereNull('program_id')))
             ->where('status', 'approved')
             ->where('quantity_remaining', '>', 0)
             ->orderBy('expiry_date') // FEFO
             ->get();
+
+        // If not enough, get other available approved batches in this facility
+        if ($stocks->sum('quantity_remaining') < $remainingToDeduct && $programId) {
+            $moreStocks = $this->stocks()
+                ->where('facility_id', $facilityId)
+                ->whereNotIn('id', $stocks->pluck('id'))
+                ->where('status', 'approved')
+                ->where('quantity_remaining', '>', 0)
+                ->orderBy('expiry_date')
+                ->get();
+            $stocks = $stocks->concat($moreStocks);
+        }
 
         foreach ($stocks as $stock) {
             if ($remainingToDeduct <= 0) {
