@@ -52,6 +52,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [ReceptionistController::class, 'dashboard'])->name('dashboard');
         
         // Beneficiary Search & Check-in
+        Route::get('/beneficiaries', [ReceptionistController::class, 'searchBeneficiary'])->name('beneficiaries.index');
         Route::get('/beneficiaries/search', [ReceptionistController::class, 'searchBeneficiary'])->name('beneficiaries.search');
         Route::get('/beneficiaries/{type}/{id}', [ReceptionistController::class, 'showBeneficiary'])->name('beneficiaries.show');
         Route::post('/beneficiaries/{type}/{id}/checkin', [ReceptionistController::class, 'checkIn'])->name('beneficiaries.checkin');
@@ -70,6 +71,7 @@ Route::middleware(['auth'])->group(function () {
         // Referrals
         Route::get('/referrals', [ReceptionistController::class, 'referrals'])->name('referrals');
         Route::post('/referrals/{referral}/register', [ReceptionistController::class, 'registerReferral'])->name('referrals.register');
+        Route::post('/referrals/{referral}/reject', [ReceptionistController::class, 'rejectReferral'])->name('referrals.reject');
         
         // Reports
         Route::get('/reports', [ReceptionistController::class, 'reports'])->name('reports');
@@ -160,6 +162,7 @@ Route::post('/consultation/{encounter}/discharge', [DoctorController::class, 'di
         Route::post('/consultation/{consultation}/resume', [DoctorController::class, 'resumeConsultation'])->name('consultation.resume');
         Route::post('/queue/{encounter}/restore', [DoctorController::class, 'restoreEncounter'])->name('queue.restore');
         Route::post('/queue/{encounter}/recall-referral', [DoctorController::class, 'recallReferral'])->name('queue.recall-referral');
+        Route::post('/queue/{encounter}/resume-rejected', [DoctorController::class, 'resumeRejectedReferral'])->name('queue.resume-rejected');
         Route::get('/consultation-history', [DoctorController::class, 'consultationHistory'])->name('consultation.history');
         
         // Patient search & dashboard

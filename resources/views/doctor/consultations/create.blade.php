@@ -81,6 +81,13 @@
                         </div>
                     </div>
                     @endif
+                    @if($vitals->notes)
+                    <div class="col-12 mt-2">
+                        <div class="alert alert-info mb-0 p-2 small">
+                            <strong>Triage Notes:</strong> {{ $vitals->notes }}
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>

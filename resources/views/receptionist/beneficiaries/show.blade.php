@@ -12,6 +12,8 @@
 .page-header .breadcrumb{font-size:12px}
 .btn-primary{--bs-btn-bg:#016634;--bs-btn-border-color:#016634;--bs-btn-hover-bg:#01552b;--bs-btn-hover-border-color:#01552b;--bs-btn-active-bg:#01552b;--bs-btn-active-border-color:#014a24}
 .btn-outline-primary{--bs-btn-color:#016634;--bs-btn-border-color:#016634;--bs-btn-hover-bg:#016634;--bs-btn-hover-border-color:#016634;--bs-btn-active-bg:#016634;--bs-btn-active-border-color:#016634}
+.form-select{background-color:#fff!important;height:50px;font-size:15px;border:1px solid #D5D9E2;border-radius:7px;color:#3A4252!important;padding:12px 2.5rem 12px 16px}
+.form-select:focus{border-color:#016634;box-shadow:0 0 0 .25rem rgba(1,102,52,.15)}
 </style>
 <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
     <h3 class="mb-0">Beneficiary Check-in</h3>
@@ -290,6 +292,32 @@
                 </h5>
             </div>
             <div class="card-body p-4">
+                @if(isset($pendingReferral) && $pendingReferral)
+                <div class="alert alert-warning border-0 bg-warning-subtle d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3 rounded-3">
+                    <div class="d-flex align-items-center">
+                        <div class="wh-40 bg-warning text-white rounded-circle d-flex align-items-center justify-content-center me-3 flex-shrink-0">
+                            <span class="material-symbols-outlined fs-5">swap_horiz</span>
+                        </div>
+                        <div>
+                            <strong class="text-dark d-block">Approved Referral Received</strong>
+                            <small class="text-muted">Referred from {{ $pendingReferral->fromFacility->name ?? 'another facility' }} &bull; Reason: {{ Str::limit($pendingReferral->reason, 60) }}</small>
+                        </div>
+                    </div>
+                    <button type="button" 
+                        class="btn btn-primary btn-sm d-inline-flex align-items-center"
+                        data-bs-toggle="modal" 
+                        data-bs-target="#registerReferralModal"
+                        data-action="{{ route('receptionist.referrals.register', $pendingReferral) }}"
+                        data-name="{{ $beneficiary->fullname }}"
+                        data-boschma="{{ $beneficiary->boschma_no }}"
+                        data-facility="{{ $pendingReferral->fromFacility->name ?? 'Referring Facility' }}"
+                        data-reason="{{ $pendingReferral->reason ?? 'General Referral' }}"
+                        data-date="{{ $pendingReferral->created_at ? \Carbon\Carbon::parse($pendingReferral->created_at)->format('M d, Y H:i') : '' }}">
+                        <span class="material-symbols-outlined me-1 fs-6 align-middle">person_add</span> Register Referred Patient
+                    </button>
+                </div>
+                @endif
+
                 @if($ongoingEncounter)
                 <div class="alert alert-danger d-flex align-items-start mb-4">
                     <span class="material-symbols-outlined me-2 mt-1">error</span>
@@ -307,7 +335,7 @@
                     <div class="row g-4">
                         <div class="col-md-6">
                             <label class="form-label fw-medium">Nature of Visit <span class="text-danger">*</span></label>
-                            <select name="nature_of_visit" class="form-select @error('nature_of_visit') is-invalid @enderror" required>
+                            <select name="nature_of_visit" class="form-select form-control bg-white @error('nature_of_visit') is-invalid @enderror" style="height: 50px; font-size: 15px; border-radius: 7px; border: 1px solid #D5D9E2; padding-right: 2.5rem;" required>
                                 <option value="">Select nature of visit...</option>
                                 <option value="New Visit" {{ old('nature_of_visit') == 'New Visit' ? 'selected' : '' }}>New Visit</option>
                                 <option value="Follow-up" {{ old('nature_of_visit') == 'Follow-up' ? 'selected' : '' }}>Follow-up</option>
@@ -332,17 +360,6 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
-
-                        
-                        <div class="col-12">
-                            <label class="form-label fw-medium">Chief Complaint</label>
-                            <textarea name="chief_complaint" class="form-control @error('chief_complaint') is-invalid @enderror" 
-                                      rows="4" placeholder="Enter patient's chief complaint or reason for visit...">{{ old('chief_complaint') }}</textarea>
-                            @error('chief_complaint')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="text-muted">Brief description of patient's main concern (optional)</small>
-                        </div>
                     </div>
 
                     <hr class="my-4">
@@ -360,4 +377,6 @@
         </div>
     </div>
 </div>
+
+@include('receptionist.referrals._register_modal')
 @endsection

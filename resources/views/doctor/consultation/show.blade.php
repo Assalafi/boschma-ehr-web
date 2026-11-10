@@ -93,6 +93,30 @@
         </div>
       </div>
 
+      @if($vitalSign)
+      <div class="doc-card">
+        <div class="doc-card-header"><span class="material-symbols-outlined" style="font-size:16px;color:var(--doc-primary)">monitor_heart</span> Vital Signs (Triage)</div>
+        <div style="padding:16px 20px">
+          <div class="row g-1 text-center small mb-2">
+            <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">Temp</div><strong>{{ $vitalSign->temperature }}°</strong></div></div>
+            <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">BP</div><strong>{{ $vitalSign->blood_pressure_systolic }}/{{ $vitalSign->blood_pressure_diastolic }}</strong></div></div>
+            <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">Pulse</div><strong>{{ $vitalSign->pulse_rate }}</strong></div></div>
+            <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">SpO2</div><strong>{{ $vitalSign->spo2 }}%</strong></div></div>
+            <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">Resp</div><strong>{{ $vitalSign->respiration_rate }}</strong></div></div>
+            <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">Wt</div><strong>{{ $vitalSign->weight ?? '-' }}kg</strong></div></div>
+          </div>
+          @if(!empty($vitalSign->notes))
+          <div class="mt-2 pt-2 border-top">
+            <small class="text-muted d-block fw-semibold" style="font-size:11px; color:var(--doc-primary) !important;">
+              <span class="material-symbols-outlined align-middle" style="font-size:14px">clinical_notes</span> Clinical Notes (Triage):
+            </small>
+            <div class="small text-dark p-2 rounded bg-light mt-1" style="font-size:12px; line-height:1.4; white-space: pre-wrap;">{{ $vitalSign->notes }}</div>
+          </div>
+          @endif
+        </div>
+      </div>
+      @endif
+
       @if($consultation->status !== 'Completed')
       <div class="doc-card">
         <div style="padding:16px 20px;display:flex;flex-direction:column;gap:8px">

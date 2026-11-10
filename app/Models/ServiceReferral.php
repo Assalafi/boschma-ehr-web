@@ -22,6 +22,7 @@ class ServiceReferral extends Model
         'approved_at',
         'rejected_by',
         'rejected_at',
+        'rejection_reason',
     ];
 
     public function encounter()
@@ -42,5 +43,15 @@ class ServiceReferral extends Model
     public function serviceItem()
     {
         return $this->belongsTo(ServiceItem::class);
+    }
+
+    public function rejectedByUser()
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    public function approvedByUser()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

@@ -29,8 +29,22 @@
             <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">Pulse</div><strong>{{ $vitalSign->pulse_rate }}</strong></div></div>
             <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">SpO2</div><strong>{{ $vitalSign->spo2 }}%</strong></div></div>
             <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">Resp</div><strong>{{ $vitalSign->respiration_rate }}</strong></div></div>
-            <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">Wt</div><strong>{{ $vitalSign->weight ?? '-' }}</strong></div></div>
+            <div class="col-4"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">Wt</div><strong>{{ $vitalSign->weight ?? '-' }}kg</strong></div></div>
+            @if($vitalSign->height)
+            <div class="col-6 mt-1"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">Ht</div><strong>{{ $vitalSign->height }}cm</strong></div></div>
+            @endif
+            @if($vitalSign->bmi)
+            <div class="col-6 mt-1"><div class="bg-light rounded p-1"><div style="font-size:10px" class="text-muted">BMI</div><strong>{{ $vitalSign->bmi }}</strong></div></div>
+            @endif
         </div>
+        @if(!empty($vitalSign->notes))
+        <div class="mt-2 pt-2 border-top">
+            <small class="text-muted d-block fw-semibold" style="font-size:11px; color:#016634 !important;">
+                <span class="material-symbols-outlined align-middle" style="font-size:13px">clinical_notes</span> Triage Notes:
+            </small>
+            <div class="small text-dark p-2 rounded bg-light mt-1" style="font-size:11.5px; line-height:1.4; white-space: pre-wrap;">{{ $vitalSign->notes }}</div>
+        </div>
+        @endif
     </div>
     @endif
 </div>

@@ -117,11 +117,58 @@ class ReceptionistController extends Controller
     public function searchBeneficiary(Request $request)
     {
         $facilityId = $this->getFacilityId();
-        $query = $request->get('q');
+        $query = $request->get('q', $request->get('query', ''));
+        
+        $pendingReferrals = \App\Models\ServiceReferral::with(['encounter.patient', 'fromFacility'])
+            ->where('to_facility_id', $facilityId)
+            ->where('referral_type', 'patient')
+            ->where('status', 'pending')
+            ->where('approval_status', 'approved')
+            ->whereNull('service_item_id')
+            ->orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
         
         $enrollees = collect();
         
         if ($query && strlen($query) >= 2) {
+            // Fetch active approved pending referrals directed to this facility
+            $activeReferrals = DB::table('service_referrals')
+                ->join('encounters', 'service_referrals.encounter_id', '=', 'encounters.id')
+                ->join('patients', 'encounters.patient_id', '=', 'patients.id')
+                ->leftJoin('facilities', 'service_referrals.from_facility_id', '=', 'facilities.id')
+                ->where('service_referrals.to_facility_id', $facilityId)
+                ->where('service_referrals.referral_type', 'patient')
+                ->where('service_referrals.status', 'pending')
+                ->where('service_referrals.approval_status', 'approved')
+                ->whereNull('service_referrals.service_item_id')
+                ->select(
+                    'service_referrals.id as referral_id',
+                    'service_referrals.reason as referral_reason',
+                    'service_referrals.created_at as referral_date',
+                    'facilities.name as from_facility_name',
+                    'encounters.patient_id',
+                    'patients.enrollee_number'
+                )
+                ->orderBy('service_referrals.created_at', 'desc')
+                ->get();
+
+            $referralsByPatientId = $activeReferrals->keyBy('patient_id');
+            $referralsByEnrolleeNo = $activeReferrals->keyBy('enrollee_number');
+            $referredPatientIds = $activeReferrals->pluck('patient_id')->filter()->unique();
+            $referredEnrolleeNos = $activeReferrals->pluck('enrollee_number')->filter()->unique()->values();
+
+            $getReferral = function($item) use ($referralsByPatientId, $referralsByEnrolleeNo) {
+                if (!empty($item->patient) && $referralsByPatientId->has($item->patient->id)) {
+                    return $referralsByPatientId->get($item->patient->id);
+                }
+                $boschma = $item->boschma_no ?? null;
+                if ($boschma && $referralsByEnrolleeNo->has($boschma)) {
+                    return $referralsByEnrolleeNo->get($boschma);
+                }
+                return null;
+            };
+
             // Search beneficiaries
             $beneficiaries = Beneficiary::where('facility_id', $facilityId)
                 ->where(function($q) use ($query) {
@@ -133,18 +180,26 @@ class ReceptionistController extends Controller
                 ->with(['patient', 'program'])
                 ->take(10)
                 ->get()
-                ->map(fn($b) => (object)[
-                    'id' => $b->id, 'type' => 'beneficiary',
-                    'name' => $b->fullname, 'boschma_no' => $b->boschma_no,
-                    'gender' => $b->gender, 'dob' => $b->date_of_birth,
-                    'nin' => $b->nin, 'phone' => $b->phone_no,
-                    'photo' => $b->photo, 'status' => $b->status,
-                    'program_name' => $b->program->name ?? 'N/A',
-                    'facility_id' => $b->facility_id,
-                    'program_id' => $b->program_id,
-                    'patient' => $b->patient,
-                    'original' => $b,
-                ]);
+                ->map(function($b) use ($getReferral) {
+                    $ref = $getReferral($b);
+                    return (object)[
+                        'id' => $b->id, 'type' => 'beneficiary',
+                        'name' => $b->fullname, 'boschma_no' => $b->boschma_no,
+                        'gender' => $b->gender, 'dob' => $b->date_of_birth,
+                        'nin' => $b->nin, 'phone' => $b->phone_no,
+                        'photo' => $b->photo, 'status' => $ref ? 'Referred' : $b->status,
+                        'program_name' => $b->program->name ?? 'N/A',
+                        'facility_id' => $b->facility_id,
+                        'program_id' => $b->program_id,
+                        'patient' => $b->patient,
+                        'original' => $b,
+                        'is_referral' => $ref ? true : false,
+                        'referral_id' => $ref->referral_id ?? null,
+                        'from_facility_name' => $ref->from_facility_name ?? null,
+                        'referral_reason' => $ref->referral_reason ?? null,
+                        'referral_date' => $ref->referral_date ?? null,
+                    ];
+                });
 
             // Search spouses
             $spouses = Spouse::where('facility_id', $facilityId)
@@ -157,18 +212,26 @@ class ReceptionistController extends Controller
                 ->with(['beneficiary.program', 'patient'])
                 ->take(10)
                 ->get()
-                ->map(fn($s) => (object)[
-                    'id' => $s->id, 'type' => 'spouse',
-                    'name' => $s->name, 'boschma_no' => $s->boschma_no,
-                    'gender' => $s->gender, 'dob' => $s->dob,
-                    'nin' => $s->nin, 'phone' => $s->phone,
-                    'photo' => $s->photo, 'status' => 'Active',
-                    'program_name' => $s->beneficiary->program->name ?? 'N/A',
-                    'facility_id' => $s->facility_id ?? $s->beneficiary->facility_id,
-                    'program_id' => $s->beneficiary->program_id ?? null,
-                    'patient' => $s->patient,
-                    'original' => $s,
-                ]);
+                ->map(function($s) use ($getReferral) {
+                    $ref = $getReferral($s);
+                    return (object)[
+                        'id' => $s->id, 'type' => 'spouse',
+                        'name' => $s->name, 'boschma_no' => $s->boschma_no,
+                        'gender' => $s->gender, 'dob' => $s->dob,
+                        'nin' => $s->nin, 'phone' => $s->phone,
+                        'photo' => $s->photo, 'status' => $ref ? 'Referred' : 'Active',
+                        'program_name' => $s->beneficiary->program->name ?? 'N/A',
+                        'facility_id' => $s->facility_id ?? $s->beneficiary->facility_id,
+                        'program_id' => $s->beneficiary->program_id ?? null,
+                        'patient' => $s->patient,
+                        'original' => $s,
+                        'is_referral' => $ref ? true : false,
+                        'referral_id' => $ref->referral_id ?? null,
+                        'from_facility_name' => $ref->from_facility_name ?? null,
+                        'referral_reason' => $ref->referral_reason ?? null,
+                        'referral_date' => $ref->referral_date ?? null,
+                    ];
+                });
 
             // Search children
             $children = Child::where('facility_id', $facilityId)
@@ -180,33 +243,32 @@ class ReceptionistController extends Controller
                 ->with(['beneficiary.program', 'patient'])
                 ->take(10)
                 ->get()
-                ->map(fn($c) => (object)[
-                    'id' => $c->id, 'type' => 'child',
-                    'name' => $c->name, 'boschma_no' => $c->boschma_no,
-                    'gender' => $c->gender, 'dob' => $c->dob,
-                    'nin' => $c->nin, 'phone' => null,
-                    'photo' => $c->photo, 'status' => 'Active',
-                    'program_name' => $c->beneficiary->program->name ?? 'N/A',
-                    'facility_id' => $c->facility_id ?? $c->beneficiary->facility_id,
-                    'program_id' => $c->beneficiary->program_id ?? null,
-                    'patient' => $c->patient,
-                    'original' => $c,
-                ]);
+                ->map(function($c) use ($getReferral) {
+                    $ref = $getReferral($c);
+                    return (object)[
+                        'id' => $c->id, 'type' => 'child',
+                        'name' => $c->name, 'boschma_no' => $c->boschma_no,
+                        'gender' => $c->gender, 'dob' => $c->dob,
+                        'nin' => $c->nin, 'phone' => null,
+                        'photo' => $c->photo, 'status' => $ref ? 'Referred' : 'Active',
+                        'program_name' => $c->beneficiary->program->name ?? 'N/A',
+                        'facility_id' => $c->facility_id ?? $c->beneficiary->facility_id,
+                        'program_id' => $c->beneficiary->program_id ?? null,
+                        'patient' => $c->patient,
+                        'original' => $c,
+                        'is_referral' => $ref ? true : false,
+                        'referral_id' => $ref->referral_id ?? null,
+                        'from_facility_name' => $ref->from_facility_name ?? null,
+                        'referral_reason' => $ref->referral_reason ?? null,
+                        'referral_date' => $ref->referral_date ?? null,
+                    ];
+                });
 
             // Search referred patients (from other facilities with pending referrals TO this facility)
-            $referredPatientIds = DB::table('service_referrals')
-                ->join('encounters', 'service_referrals.encounter_id', '=', 'encounters.id')
-                ->where('service_referrals.to_facility_id', $facilityId)
-                ->where('service_referrals.referral_type', 'patient')
-                ->where('service_referrals.status', 'pending')
-                ->where('service_referrals.approval_status', 'approved')
-                ->whereNull('service_referrals.service_item_id')
-                ->pluck('encounters.patient_id');
-
-            if ($referredPatientIds->isNotEmpty()) {
+            if ($referredEnrolleeNos->isNotEmpty()) {
                 // Search beneficiaries from other facilities that have been referred here
-                $referredBeneficiaries = Beneficiary::where('facility_id', '!=', $facilityId)
-                    ->whereHas('patient', fn($q) => $q->whereIn('id', $referredPatientIds))
+                $referredBeneficiaries = Beneficiary::whereIn('boschma_no', $referredEnrolleeNos)
+                    ->where('facility_id', '!=', $facilityId)
                     ->where(function($q) use ($query) {
                         $q->where('fullname', 'like', "%{$query}%")
                           ->orWhere('boschma_no', 'like', "%{$query}%")
@@ -216,25 +278,32 @@ class ReceptionistController extends Controller
                     ->with(['patient', 'program'])
                     ->take(10)
                     ->get()
-                    ->map(fn($b) => (object)[
-                        'id' => $b->id, 'type' => 'beneficiary',
-                        'name' => $b->fullname, 'boschma_no' => $b->boschma_no,
-                        'gender' => $b->gender, 'dob' => $b->date_of_birth,
-                        'nin' => $b->nin, 'phone' => $b->phone_no,
-                        'photo' => $b->photo, 'status' => 'Referred',
-                        'program_name' => $b->program->name ?? 'N/A',
-                        'facility_id' => $b->facility_id,
-                        'program_id' => $b->program_id,
-                        'patient' => $b->patient,
-                        'original' => $b,
-                        'is_referral' => true,
-                    ]);
+                    ->map(function($b) use ($getReferral) {
+                        $ref = $getReferral($b);
+                        return (object)[
+                            'id' => $b->id, 'type' => 'beneficiary',
+                            'name' => $b->fullname, 'boschma_no' => $b->boschma_no,
+                            'gender' => $b->gender, 'dob' => $b->date_of_birth,
+                            'nin' => $b->nin, 'phone' => $b->phone_no,
+                            'photo' => $b->photo, 'status' => 'Referred',
+                            'program_name' => $b->program->name ?? 'N/A',
+                            'facility_id' => $b->facility_id,
+                            'program_id' => $b->program_id,
+                            'patient' => $b->patient,
+                            'original' => $b,
+                            'is_referral' => true,
+                            'referral_id' => $ref->referral_id ?? null,
+                            'from_facility_name' => $ref->from_facility_name ?? null,
+                            'referral_reason' => $ref->referral_reason ?? null,
+                            'referral_date' => $ref->referral_date ?? null,
+                        ];
+                    });
 
                 $beneficiaries = $beneficiaries->concat($referredBeneficiaries);
 
                 // Search spouses from other facilities that have been referred here
-                $referredSpouses = Spouse::where('facility_id', '!=', $facilityId)
-                    ->whereHas('patient', fn($q) => $q->whereIn('id', $referredPatientIds))
+                $referredSpouses = Spouse::whereIn('boschma_no', $referredEnrolleeNos)
+                    ->where('facility_id', '!=', $facilityId)
                     ->where(function($q) use ($query) {
                         $q->where('name', 'like', "%{$query}%")
                           ->orWhere('boschma_no', 'like', "%{$query}%")
@@ -244,25 +313,32 @@ class ReceptionistController extends Controller
                     ->with(['beneficiary.program', 'patient'])
                     ->take(10)
                     ->get()
-                    ->map(fn($s) => (object)[
-                        'id' => $s->id, 'type' => 'spouse',
-                        'name' => $s->name, 'boschma_no' => $s->boschma_no,
-                        'gender' => $s->gender, 'dob' => $s->dob,
-                        'nin' => $s->nin, 'phone' => $s->phone,
-                        'photo' => $s->photo, 'status' => 'Referred',
-                        'program_name' => $s->beneficiary->program->name ?? 'N/A',
-                        'facility_id' => $s->facility_id ?? $s->beneficiary->facility_id,
-                        'program_id' => $s->beneficiary->program_id ?? null,
-                        'patient' => $s->patient,
-                        'original' => $s,
-                        'is_referral' => true,
-                    ]);
+                    ->map(function($s) use ($getReferral) {
+                        $ref = $getReferral($s);
+                        return (object)[
+                            'id' => $s->id, 'type' => 'spouse',
+                            'name' => $s->name, 'boschma_no' => $s->boschma_no,
+                            'gender' => $s->gender, 'dob' => $s->dob,
+                            'nin' => $s->nin, 'phone' => $s->phone,
+                            'photo' => $s->photo, 'status' => 'Referred',
+                            'program_name' => $s->beneficiary->program->name ?? 'N/A',
+                            'facility_id' => $s->facility_id ?? $s->beneficiary->facility_id,
+                            'program_id' => $s->beneficiary->program_id ?? null,
+                            'patient' => $s->patient,
+                            'original' => $s,
+                            'is_referral' => true,
+                            'referral_id' => $ref->referral_id ?? null,
+                            'from_facility_name' => $ref->from_facility_name ?? null,
+                            'referral_reason' => $ref->referral_reason ?? null,
+                            'referral_date' => $ref->referral_date ?? null,
+                        ];
+                    });
 
                 $spouses = $spouses->concat($referredSpouses);
 
                 // Search children from other facilities that have been referred here
-                $referredChildren = Child::where('facility_id', '!=', $facilityId)
-                    ->whereHas('patient', fn($q) => $q->whereIn('id', $referredPatientIds))
+                $referredChildren = Child::whereIn('boschma_no', $referredEnrolleeNos)
+                    ->where('facility_id', '!=', $facilityId)
                     ->where(function($q) use ($query) {
                         $q->where('name', 'like', "%{$query}%")
                           ->orWhere('boschma_no', 'like', "%{$query}%")
@@ -271,24 +347,31 @@ class ReceptionistController extends Controller
                     ->with(['beneficiary.program', 'patient'])
                     ->take(10)
                     ->get()
-                    ->map(fn($c) => (object)[
-                        'id' => $c->id, 'type' => 'child',
-                        'name' => $c->name, 'boschma_no' => $c->boschma_no,
-                        'gender' => $c->gender, 'dob' => $c->dob,
-                        'nin' => $c->nin, 'phone' => null,
-                        'photo' => $c->photo, 'status' => 'Referred',
-                        'program_name' => $c->beneficiary->program->name ?? 'N/A',
-                        'facility_id' => $c->facility_id ?? $c->beneficiary->facility_id,
-                        'program_id' => $c->beneficiary->program_id ?? null,
-                        'patient' => $c->patient,
-                        'original' => $c,
-                        'is_referral' => true,
-                    ]);
+                    ->map(function($c) use ($getReferral) {
+                        $ref = $getReferral($c);
+                        return (object)[
+                            'id' => $c->id, 'type' => 'child',
+                            'name' => $c->name, 'boschma_no' => $c->boschma_no,
+                            'gender' => $c->gender, 'dob' => $c->dob,
+                            'nin' => $c->nin, 'phone' => null,
+                            'photo' => $c->photo, 'status' => 'Referred',
+                            'program_name' => $c->beneficiary->program->name ?? 'N/A',
+                            'facility_id' => $c->facility_id ?? $c->beneficiary->facility_id,
+                            'program_id' => $c->beneficiary->program_id ?? null,
+                            'patient' => $c->patient,
+                            'original' => $c,
+                            'is_referral' => true,
+                            'referral_id' => $ref->referral_id ?? null,
+                            'from_facility_name' => $ref->from_facility_name ?? null,
+                            'referral_reason' => $ref->referral_reason ?? null,
+                            'referral_date' => $ref->referral_date ?? null,
+                        ];
+                    });
 
                 $children = $children->concat($referredChildren);
             }
 
-            $enrollees = $beneficiaries->concat($spouses)->concat($children)->take(20);
+            $enrollees = $beneficiaries->concat($spouses)->concat($children)->unique(fn($item) => $item->type . '_' . $item->id)->take(20);
         }
         
         if ($request->ajax()) {
@@ -297,7 +380,7 @@ class ReceptionistController extends Controller
         
         // Keep variable name for backward compat with view
         $beneficiaries = $enrollees;
-        return view('receptionist.beneficiaries.search', compact('beneficiaries', 'query'));
+        return view('receptionist.beneficiaries.search', compact('beneficiaries', 'query', 'pendingReferrals'));
     }
 
     /**
@@ -358,6 +441,7 @@ class ReceptionistController extends Controller
         // Get recent encounters and check for ongoing encounter
         $recentEncounters = [];
         $ongoingEncounter = null;
+        $pendingReferral = null;
         
         if ($beneficiary->patient) {
             $recentEncounters = Encounter::where('patient_id', $beneficiary->patient->id)
@@ -372,11 +456,22 @@ class ReceptionistController extends Controller
                 ->with(['facility', 'program'])
                 ->latest()
                 ->first();
+
+            // Check for pending approved referral to this facility
+            $pendingReferral = \App\Models\ServiceReferral::whereHas('encounter', fn($q) => $q->where('patient_id', $beneficiary->patient->id))
+                ->where('to_facility_id', $facilityId)
+                ->where('referral_type', 'patient')
+                ->where('status', 'pending')
+                ->where('approval_status', 'approved')
+                ->whereNull('service_item_id')
+                ->with('fromFacility')
+                ->latest()
+                ->first();
         }
         
         $programs = Program::all();
         
-        return view('receptionist.beneficiaries.show', compact('beneficiary', 'recentEncounters', 'ongoingEncounter', 'programs'));
+        return view('receptionist.beneficiaries.show', compact('beneficiary', 'recentEncounters', 'ongoingEncounter', 'programs', 'pendingReferral'));
     }
 
     /**
@@ -703,12 +798,18 @@ class ReceptionistController extends Controller
         $facilityId = $this->getFacilityId();
         $status = $request->get('status', 'pending');
         
-        $query = \App\Models\ServiceReferral::with(['encounter.patient', 'encounter.program', 'fromFacility', 'toFacility'])
+        $query = \App\Models\ServiceReferral::with(['encounter.patient', 'encounter.program', 'fromFacility', 'toFacility', 'rejectedByUser'])
             ->where('referral_type', 'patient')
             ->whereNull('service_item_id');
         
         if ($status === 'outgoing') {
             $query->where('from_facility_id', $facilityId);
+        } elseif ($status === 'rejected') {
+            $query->where('to_facility_id', $facilityId)
+                ->where(function ($q) {
+                    $q->where('status', 'rejected')
+                      ->orWhere('approval_status', 'rejected');
+                });
         } else {
             $query->where('to_facility_id', $facilityId);
             if ($status === 'pending') {
@@ -807,6 +908,54 @@ class ReceptionistController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to register referred patient: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reject a referred patient
+     */
+    public function rejectReferral(Request $request, \App\Models\ServiceReferral $referral)
+    {
+        $facilityId = $this->getFacilityId();
+        
+        if ((int) $referral->to_facility_id !== (int) $facilityId) {
+            abort(403, 'This referral is not for your facility.');
+        }
+        
+        if ($referral->status !== 'pending') {
+            return back()->with('error', 'This referral has already been processed.');
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:1000',
+        ]);
+        
+        DB::beginTransaction();
+        try {
+            $referral->update([
+                'status'           => 'rejected',
+                'approval_status'  => 'rejected',
+                'rejection_reason' => $validated['rejection_reason'],
+                'rejected_by'      => Auth::id(),
+                'rejected_at'      => now(),
+            ]);
+
+            if ($referral->encounter_id) {
+                EncounterAction::create([
+                    'encounter_id' => $referral->encounter_id,
+                    'user_id'      => Auth::id(),
+                    'action_type'  => ActionType::REGISTRATION,
+                    'description'  => 'Referral rejected by ' . Auth::user()->name . '. Reason: ' . Str::limit($validated['rejection_reason'], 150),
+                    'action_time'  => now(),
+                ]);
+            }
+
+            DB::commit();
+
+            return back()->with('success', 'Referral has been rejected successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to reject referral: ' . $e->getMessage());
         }
     }
 

@@ -104,6 +104,11 @@ class Encounter extends Model
         return $this->hasOne(FacilityClaim::class);
     }
 
+    public function serviceReferrals()
+    {
+        return $this->hasMany(ServiceReferral::class);
+    }
+
     // Scopes
     public function scopeCompleted($query)
     {

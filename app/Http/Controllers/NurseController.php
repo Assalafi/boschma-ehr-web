@@ -11,6 +11,7 @@ use App\Models\DrugAdministration;
 use App\Models\Admission;
 use App\Models\Ward;
 use App\Models\Bed;
+use App\Models\Program;
 
 class NurseController extends Controller
 {
@@ -92,16 +93,34 @@ class NurseController extends Controller
     /**
      * Triage - List patients awaiting triage (no vitals yet)
      */
-    public function triageIndex()
+    public function triageIndex(Request $request)
     {
         $user = Auth::user();
-        $encounters = Encounter::with(['patient.beneficiary', 'program', 'vitalSigns'])
+        $query = Encounter::with(['patient.beneficiary', 'patient.spouse', 'patient.child', 'program', 'vitalSigns'])
             ->where('facility_id', $user->facility_id)
-            ->where('status', Encounter::STATUS_REGISTERED)
-            ->latest()
-            ->paginate(15);
+            ->where('status', Encounter::STATUS_REGISTERED);
 
-        return view('nurse.triage.index', compact('encounters'));
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('patient', function ($pq) use ($search) {
+                    $pq->search($search);
+                })
+                ->orWhere('nature_of_visit', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('program_id')) {
+            $query->where('program_id', $request->program_id);
+        }
+
+        $encounters = $query->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        $programs = Program::orderBy('name')->get();
+
+        return view('nurse.triage.index', compact('encounters', 'programs'));
     }
 
     /**
@@ -125,8 +144,8 @@ class NurseController extends Controller
             'pulse_rate' => 'required|integer|min:30|max:200',
             'respiration_rate' => 'required|integer|min:5|max:60',
             'spo2' => 'required|integer|min:50|max:100',
-            'weight' => 'nullable|numeric|min:1|max:500',
-            'height' => 'nullable|numeric|min:30|max:250',
+            'weight' => 'required|numeric|min:1|max:500',
+            'height' => 'required|numeric|min:30|max:250',
             'overall_priority' => 'required|in:Red,Yellow,Green',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -144,6 +163,7 @@ class NurseController extends Controller
             'weight' => $request->weight,
             'height' => $request->height,
             'overall_priority' => $request->overall_priority,
+            'notes' => $request->notes,
         ]);
 
         // Update encounter status to Triaged only if no active consultation exists
@@ -259,8 +279,8 @@ class NurseController extends Controller
             'pulse_rate' => 'required|integer|min:30|max:200',
             'respiration_rate' => 'required|integer|min:5|max:60',
             'spo2' => 'required|integer|min:50|max:100',
-            'weight' => 'nullable|numeric|min:1|max:500',
-            'height' => 'nullable|numeric|min:30|max:250',
+            'weight' => 'required|numeric|min:1|max:500',
+            'height' => 'required|numeric|min:30|max:250',
             'overall_priority' => 'required|in:Red,Yellow,Green',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -282,6 +302,7 @@ class NurseController extends Controller
             'weight' => $request->weight,
             'height' => $request->height,
             'overall_priority' => $request->overall_priority,
+            'notes' => $request->notes,
         ]);
 
         // Log the update action
